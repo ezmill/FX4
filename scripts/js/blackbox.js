@@ -59,6 +59,7 @@ function blackbox (el, inputImage, origImage, cbs) {
     div.appendChild(icons);
     //to-do splice in BASE shader at first index and then remove after starting
     var infoCounter = 0;
+    var audio = new Audio(), playing = false;
 
     init();
     function init(){
@@ -106,25 +107,14 @@ function blackbox (el, inputImage, origImage, cbs) {
         origImg.src = origImage;
         // console.log(img);
         // image.src = base64;
-        crop = document.createElement("canvas");
-        crop.width = window.innerWidth;
-        crop.height = window.innerHeight;
-        cropCtx = crop.getContext("2d");
-        cropCtx.drawImage(img, 0, 0);
-        texture = new THREE.Texture(crop);
-        // texture.image = img;
+        texture = new THREE.Texture();
+        texture.image = img;
         texture.minFilter = texture.magFilter = THREE.LinearFilter;
-        orig = document.createElement("canvas");
-        orig.width = window.innerWidth;
-        orig.height = window.innerHeight;
-        origCtx = crop.getContext("2d");
-        origCtx.drawImage(img, 0, 0);
-        origTex = new THREE.Texture(orig);
+        origTex = new THREE.Texture();
         // origTex = THREE.ImageUtils.loadTexture("assets/textures/newtest.jpg");
         origTex.image = img;
         origTex.minFilter = origTex.magFilter = THREE.LinearFilter;
         // origTex = texture.clone();
-        playing = false;
         effect = new Effect(effects[effectIndex]);
         effect.init();
         if(effect.useMask){
@@ -162,6 +152,7 @@ function blackbox (el, inputImage, origImage, cbs) {
         origImg.onload = function(){
             origTex.needsUpdate = true;
         }
+        handleAudio(effect.name);
     }   
     function createNewEffect(){
         var useNewOriginal = false;
@@ -187,7 +178,6 @@ function blackbox (el, inputImage, origImage, cbs) {
         img.onload = function(e) {
             texture.dispose();
             texture.image = img;            
-            playing = false;
             effect = new Effect(effects[effectIndex]);
             effect.init();
             if(effect.useMask){
@@ -227,6 +217,45 @@ function blackbox (el, inputImage, origImage, cbs) {
                 fbMaterial.setOriginalTex(origTex);                
             }
         }
+        // handleAudio(effect.name);
+    }
+    function playAudio(src){
+        audio.src = src;
+        audio.load();
+    }
+    function handleAudio(name){
+        switch(name){
+            case "warp":
+                playAudio("assets/audio/WARP.mp3")
+                break;
+            case "revert":
+                playAudio("assets/audio/REVERT.mp3")
+                break;      
+            case "rgb shift":
+                playAudio("assets/audio/RGB.mp3")
+                break;
+            case "oil paint":
+                playAudio("assets/audio/OIL PAINT 2.mp3")
+                break;  
+            case "repos":
+               playAudio("assets/audio/REPOSITION.mp3")
+                break;  
+            case "flow":
+                playAudio("assets/audio/FLOW.mp3")
+                break;
+            case "gradient":
+                playAudio("assets/audio/GRADIENT.mp3")
+                break;  
+            case "warp flow":
+                playAudio("assets/audio/WARP FLOW.mp3")
+                break;                                                                      
+            case "curves":
+                playAudio("assets/audio/CURVES.mp3")
+                break;  
+            case "neon glow":
+                playAudio("assets/audio/NEON GLOW.mp3")
+                break;
+        }
     }
     function animate(){
         id = requestAnimationFrame(animate);
@@ -243,10 +272,16 @@ function blackbox (el, inputImage, origImage, cbs) {
         }
         if(playing){
             audio.play();
-            audio.volume += (1.0 - audio.volume)*0.01;
+            audio.volume += (1.0 - audio.volume)*0.1;
+
         } else {
-            audio.volume += (0.0 - audio.volume)*0.01;
+            audio.volume += (0.0 - audio.volume)*0.1;
+            if(audio.volume < 0.1){
+                audio.pause();
+                handleAudio(effect.name);
+            }
         }
+        console.log(audio.volume);
         fbMaterial.setUniforms();
         fbMaterial.update();
         renderer.render(scene, camera);
@@ -343,6 +378,7 @@ function blackbox (el, inputImage, origImage, cbs) {
     }
     function onMouseUp(){
         mouseDown = false;
+        playing = false;
         r2 = 0;
         createNewEffect();
 
@@ -373,12 +409,11 @@ function blackbox (el, inputImage, origImage, cbs) {
     }
     function onWindowResize( event ) {
 
-        // if(window.innerWidth>imgEl.width*(window.innerHeight/imgEl.height)){
-            // renderSize = new THREE.Vector2(window.innerWidth, imgEl.height*(window.innerWidth/imgEl.width));
-        // } else {
-            // renderSize = new THREE.Vector2(imgEl.width*(window.innerHeight/imgEl.height), window.innerHeight);
-        // }
-        renderSize = new THREE.Vector2(window.innerWidth, window.innerHeight);
+        if(window.innerWidth>imgEl.width*(window.innerHeight/imgEl.height)){
+            renderSize = new THREE.Vector2(window.innerWidth, imgEl.height*(window.innerWidth/imgEl.width));
+        } else {
+            renderSize = new THREE.Vector2(imgEl.width*(window.innerHeight/imgEl.height), window.innerHeight);
+        }
         renderer.setSize( renderSize.x, renderSize.y );
         // camera.left = renderSize.x / - 2;
         // camera.right = renderSize.x / 2;

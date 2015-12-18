@@ -25,54 +25,40 @@
                         [[[0,0], [0.557, 0.413], [0.79, 0.755], [1,1]],
                         [[0,0], [0.666, 0.661], [0.889, 1]],
                         [[0,0], [0.156, 0.21], [0.468, 0.453], [1,1]]]]
-        this.playAudio = function(src){
-			// audio = new Audio();
-            // audio.src = src;
-            // audio.load();
-            // audio.volume = 0;
-        }
         this.init = function(){
             switch(this.name){
                 case "warp":
                     this.shaders = this.warpEffect();
                     this.useMask = true;
-                    this.playAudio("assets/audio/Plasma_Lotus.mp3")
                     break;
                 case "revert":
                     seed = Math.random()*2 - 1;
                     this.shaders = this.revertEffect();
                     this.useMask = true;
-                    this.playAudio("assets/audio/Plasma_Lotus.mp3")
                     break;      
                 case "rgb shift":
                     this.shaders = this.rgbShiftEffect();
                     this.useMask = true;
-                    this.playAudio("assets/audio/Plasma_Lotus.mp3")
                     break;
                 case "oil paint":
                     this.shaders = this.oilPaintEffect();
                     this.useMask = true;
-                    this.playAudio("assets/audio/Plasma_Lotus.mp3")
                     break;  
                 case "repos":
                     this.shaders = this.reposEffect();
                     this.useMask = true;
-                   this.playAudio("assets/audio/Plasma_Lotus.mp3")
                     break;  
                 case "flow":
                     this.shaders = this.flowEffect();
                     this.useMask = true;
-                    this.playAudio("assets/audio/Plasma_Lotus.mp3")
                     break;
                 case "gradient":
                     this.shaders = this.gradientEffect();
                     this.useMask = true;
-                    this.playAudio("assets/audio/Plasma_Lotus.mp3")
                     break;  
                 case "warp flow":
                     this.shaders = this.warpFlowEffect();
                     this.useMask = true;
-                    this.playAudio("assets/audio/Plasma_Lotus.mp3")
                     break;                                                                      
                 case "curves":
                     // var curves = [[], [], []];
@@ -97,17 +83,14 @@
                         // curves[1],
                         // curves[2]
                         );
-                    this.playAudio("assets/audio/Plasma_Lotus.mp3")
                     this.useMask = true;
                     break;  
                 case "neon glow":
                     this.shaders = this.neonGlowEffect();
-                    this.playAudio("assets/audio/Plasma_Lotus.mp3")
                     this.useMask = true;
                     break;
                 case "glass":
                     this.shaders = this.glassEffect();
-                    this.playAudio("assets/audio/Plasma_Lotus.mp3")
                     this.useMask = true;
             }
         }
