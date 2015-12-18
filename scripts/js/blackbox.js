@@ -57,7 +57,6 @@ function blackbox (el, inputImage, origImage, cbs) {
     icons.appendChild(infoButton);
     icons.appendChild(uploadButton);
     div.appendChild(icons);
-
     //to-do splice in BASE shader at first index and then remove after starting
     var infoCounter = 0;
 
@@ -78,6 +77,7 @@ function blackbox (el, inputImage, origImage, cbs) {
         document.addEventListener( 'touchend', onDocumentTouchEnd, false );
         document.addEventListener( 'touchcancel', onDocumentTouchEnd, false );
         document.addEventListener( 'touchleave', onDocumentTouchEnd, false );
+        document.addEventListener( 'keydown', onKeyDown, false );
         window.addEventListener("resize", onWindowResize);
         // uploadButton.addEventListener("click", upload);
         // infoButton.addEventListener("click", exitInfo);
@@ -91,6 +91,9 @@ function blackbox (el, inputImage, origImage, cbs) {
         animate();
     }
     function createEffect(){
+        shuffle(effects);
+        insertRevert(effects);
+        console.log(effects);
         if(texture)texture.dispose();
         if(origTex)origTex.dispose();
         // var blob = dataURItoBlob(base64);
@@ -126,15 +129,15 @@ function blackbox (el, inputImage, origImage, cbs) {
         fbMaterial = new FeedbackMaterial(renderer, scene, camera, texture, effect.shaders);  
         fbMaterial.init();
         if(effect.name == "neon glow"){
-            var tex = THREE.ImageUtils.loadTexture("assets/textures/neon-transparent.png");
+            var tex = THREE.ImageUtils.loadTexture(path + "neon.png");
             tex.minFilter = tex.magFilter = THREE.LinearFilter;
             mask.setMask(tex);
         } else if(effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert"){
-            var tex = THREE.ImageUtils.loadTexture("assets/textures/repos-transparent.png")
+            var tex = THREE.ImageUtils.loadTexture(path + "repos.png")
             tex.minFilter = tex.magFilter = THREE.LinearFilter;
             mask.setMask(tex);
         } else if(effect.name == "warp"){
-            var tex = THREE.ImageUtils.loadTexture("assets/textures/warp-transparent.png");
+            var tex = THREE.ImageUtils.loadTexture(path + "warp.png");
             tex.minFilter = tex.magFilter = THREE.LinearFilter;
             mask.setMask(tex);
         }  else {
@@ -157,7 +160,7 @@ function blackbox (el, inputImage, origImage, cbs) {
         }       
         if(effects[effectIndex] == "neon glow"){
             useNewOriginal = true;
-        } else if(effects[effectIndex] == "rgb shift" || effects[effectIndex] == "oil paint" || effects[effectIndex] == "flow" || effects[effectIndex] == "warp flow" || effects[effectIndex] == "repos" || effects[effectIndex] == "revert"){
+        } else if(effects[effectIndex] == "rgb shift" || effects[effectIndex] == "oil paint" || effects[effectIndex] == "flow" || effects[effectIndex] == "warp flow" || effects[effectIndex] == "repos"){
             useNewOriginal = true;
         } else if(effects[effectIndex] == "warp"){
             useNewOriginal = true;
@@ -192,19 +195,19 @@ function blackbox (el, inputImage, origImage, cbs) {
             fbMaterial = new FeedbackMaterial(renderer, scene, camera, texture, effect.shaders);            
             fbMaterial.init();
             if(effect.name == "neon glow"){
-                var tex = THREE.ImageUtils.loadTexture("assets/textures/neon-transparent.png");
+                var tex = THREE.ImageUtils.loadTexture(path + "neon.png");
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
             } else if(effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert"){
-                var tex = THREE.ImageUtils.loadTexture("assets/textures/repos-transparent.png")
+                var tex = THREE.ImageUtils.loadTexture(path + "repos.png")
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
             } else if(effect.name == "warp"){
-                var tex = THREE.ImageUtils.loadTexture("assets/textures/warp-transparent.png");
+                var tex = THREE.ImageUtils.loadTexture(path + "warp.png");
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
             }  else {
-                mask.setMask(null);
+                mask.setMask(false);
             }
             if(useNewOriginal){
                 fbMaterial.setOriginalTex(texture);
@@ -370,6 +373,28 @@ function blackbox (el, inputImage, origImage, cbs) {
         mask.resize();
         fbMaterial.resize();
         fbMaterial.setUniforms();
+    }
+    function onKeyDown(event){
+        if(event.keyCode == "39"){
+            if(imgNum < 13){
+                imgNum++;
+            } else {
+                imgNum = 1;
+            }
+            path = "assets/textures/" + imgNum + "/";
+            inputImage = path + "texture.jpg";
+            createEffect();
+        }
+        if(event.keyCode == "37"){
+            if(imgNum == 1){
+                imgNum = 12;
+            } else {
+                imgNum--;
+            }
+            path = "assets/textures/" + imgNum + "/";
+            inputImage = path + "texture.jpg";
+            createEffect();
+        }
     }
 
 }

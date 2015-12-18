@@ -41,6 +41,8 @@
 		var mouseDown = false;
 		var r2 = 0.0;
 		var audio = new Audio(), playing = false;
+	    var imgNum = 1;
+		var path = "assets/textures/" + imgNum + "/";
 		var origTex, origImage;
 			var blackboxEl = document.getElementById('BB-container')
 			imgEl = new Image();
@@ -58,7 +60,7 @@
 				origImage = canvas.toDataURL();
 				blackbox(blackboxEl, origImage, origImage, {save: onCompleteBlackbox, info: null})
 			}
-			imgEl.src = "assets/textures/newtest.jpg";
+			imgEl.src = path + "texture.jpg";
 			
 			function onCompleteBlackbox (err, inputImage, origImage) {
 			    if (err) { console.error(err); return }

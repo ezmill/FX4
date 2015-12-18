@@ -56,9 +56,6 @@ function Mask(){
 		this.material.uniforms["black"].value = THREE.ImageUtils.loadTexture("assets/textures/black.jpg");
 		this.material.uniforms["black"].value.minFilter = THREE.LinearFilter;
 		this.material.uniforms["black"].value.magFilter = THREE.LinearFilter;
-		this.material.uniforms["img"].value = THREE.ImageUtils.loadTexture("assets/textures/warp-transparent.png");
-		this.material.uniforms["img"].value.minFilter = THREE.LinearFilter;
-		this.material.uniforms["img"].value.magFilter = THREE.LinearFilter;
 		this.mesh = new THREE.Mesh(this.geometry, this.material);
 		this.scene.add(this.mesh);
 		this.mesh.position.z = 0;
@@ -89,7 +86,7 @@ function Mask(){
 		this.outputScene.add(this.maskMesh);
 		this.maskMesh.position.z = 0;
 
-		this.alphaTex = THREE.ImageUtils.loadTexture("assets/textures/warp-transparent.png");
+		this.alphaTex = THREE.ImageUtils.loadTexture(path + "warp.png");
 		this.alphaTex.minFilter = this.alphaTex.magFilter = THREE.LinearFilter;
 		this.overlayGeometry = new THREE.PlaneBufferGeometry(renderSize.x, renderSize.y);
 		this.overlayMaterial = new THREE.MeshBasicMaterial({
@@ -157,7 +154,6 @@ function MaskShader(){
                 "r2"  : { type: "f", value: null },
                 "white"  : { type: "t", value: null },
                 "black"  : { type: "t", value: null },
-                "img" : { type: "t", value: null}
             }
         ]);
 
@@ -177,7 +173,6 @@ function MaskShader(){
             "uniform vec2 mouse;",
             "uniform sampler2D white;",
             "uniform sampler2D black;",
-            "uniform sampler2D img;",
             "uniform float r2;",
             "uniform float time;",
             "varying vec2 vUv;",
@@ -192,31 +187,11 @@ function MaskShader(){
             "	float a = atan(p.y, p.x);",
             "	vec4 white = vec4(texture2D(white, vUv).rgb, 1.0);",
             "	vec4 black = vec4(texture2D(black, vUv).rgb, 1.0);;",
-            "	vec4 img = vec4(texture2D(img, vUv).rgb, texture2D(img, vUv).a);;",
             "	if(r < r2){",
             "		float f = smoothstep(r2, r2-1.0, r);",
             "		black = mix( black, white, f);",
             "	}",
-            // "	if(dot(img.rgb, vec3(1.0))/3.0 > 0.01){",
-            // "		gl_FragColor = mix( black,  img, dot(img.rgb, vec3(1.0))/3.0);",
-            // "		gl_FragColor = img;",
-            // "	} else {",
-            "		gl_FragColor = black;",
-            // "		gl_FragColor = mix(black, img, 0.5);",
-            // "		gl_FragColor = img;",
-            // "	}",
-            // "    float t=time;",
-            // "    if(t<0.1)",
-            // "    {",
-            // "        gl_FragColor=black;",
-            // "        return;",
-            // "    }",
-            // "    if(length(gl_FragCoord.xy-mouse.xy)>r2){",
-            // "    	if(smoothstep()){",
-            // "    		discard;",
-            // "		}",
-            // "	 }",
-            // "	gl_FragColor = white;",
+            "	gl_FragColor = black;",
             "}",
 
 
