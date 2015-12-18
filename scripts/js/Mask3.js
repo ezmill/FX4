@@ -143,6 +143,12 @@ function Mask(){
 		this.renderer.setSize(renderSize.x, renderSize.y);
 		this.renderTarget1.setSize(renderSize.x, renderSize.y);
 		this.renderTarget2.setSize(renderSize.x, renderSize.y);
+		this.renderer.setSize( renderSize.x, renderSize.y );
+		this.outputRenderer.setSize( renderSize.x, renderSize.y );
+		this.camera.left = this.outputCamera.left = renderSize.x / - 2;
+		this.camera.right = this.outputCamera.right = renderSize.x / 2;
+		this.camera.top = this.outputCamera.top = renderSize.y / 2;
+		this.camera.bottom = this.outputCamera.bottom = renderSize.y / - 2;
 	}
 }
 function MaskShader(){
