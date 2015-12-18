@@ -106,10 +106,20 @@ function blackbox (el, inputImage, origImage, cbs) {
         origImg.src = origImage;
         // console.log(img);
         // image.src = base64;
-        texture = new THREE.Texture();
-        texture.image = img;
+        crop = document.createElement("canvas");
+        crop.width = window.innerWidth;
+        crop.height = window.innerHeight;
+        cropCtx = crop.getContext("2d");
+        cropCtx.drawImage(img, 0, 0);
+        texture = new THREE.Texture(crop);
+        // texture.image = img;
         texture.minFilter = texture.magFilter = THREE.LinearFilter;
-        origTex = new THREE.Texture();
+        orig = document.createElement("canvas");
+        orig.width = window.innerWidth;
+        orig.height = window.innerHeight;
+        origCtx = crop.getContext("2d");
+        origCtx.drawImage(img, 0, 0);
+        origTex = new THREE.Texture(orig);
         // origTex = THREE.ImageUtils.loadTexture("assets/textures/newtest.jpg");
         origTex.image = img;
         origTex.minFilter = origTex.magFilter = THREE.LinearFilter;
@@ -363,11 +373,12 @@ function blackbox (el, inputImage, origImage, cbs) {
     }
     function onWindowResize( event ) {
 
-        if(window.innerWidth>imgEl.width*(window.innerHeight/imgEl.height)){
-            renderSize = new THREE.Vector2(window.innerWidth, imgEl.height*(window.innerWidth/imgEl.width));
-        } else {
-            renderSize = new THREE.Vector2(imgEl.width*(window.innerHeight/imgEl.height), window.innerHeight);
-        }
+        // if(window.innerWidth>imgEl.width*(window.innerHeight/imgEl.height)){
+            // renderSize = new THREE.Vector2(window.innerWidth, imgEl.height*(window.innerWidth/imgEl.width));
+        // } else {
+            // renderSize = new THREE.Vector2(imgEl.width*(window.innerHeight/imgEl.height), window.innerHeight);
+        // }
+        renderSize = new THREE.Vector2(window.innerWidth, window.innerHeight);
         renderer.setSize( renderSize.x, renderSize.y );
         // camera.left = renderSize.x / - 2;
         // camera.right = renderSize.x / 2;
