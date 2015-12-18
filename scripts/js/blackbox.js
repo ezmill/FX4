@@ -360,10 +360,11 @@ function blackbox (el, inputImage, origImage, cbs) {
         createNewEffect();
     }
     function onWindowResize( event ) {
-        if(window.innerWidth>2560*(window.innerHeight/1440)){
-            renderSize = new THREE.Vector2(window.innerWidth, 1440*(window.innerWidth/2560));
+
+        if(window.innerWidth>imgEl.width*(window.innerHeight/imgEl.height)){
+            renderSize = new THREE.Vector2(window.innerWidth, imgEl.height*(window.innerWidth/imgEl.width));
         } else {
-            renderSize = new THREE.Vector2(2560*(window.innerHeight/1440), window.innerHeight);
+            renderSize = new THREE.Vector2(imgEl.width*(window.innerHeight/imgEl.height), window.innerHeight);
         }
         renderer.setSize( renderSize.x, renderSize.y );
         camera.left = renderSize.x / - 2;

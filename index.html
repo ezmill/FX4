@@ -56,7 +56,7 @@
 				    renderSize = new THREE.Vector2(window.innerWidth, imgEl.height*(window.innerWidth/imgEl.width));
 				} else {
 				    renderSize = new THREE.Vector2(imgEl.width*(window.innerHeight/imgEl.height), window.innerHeight);
-				}       
+				}   
 				origImage = canvas.toDataURL();
 				blackbox(blackboxEl, origImage, origImage, {save: onCompleteBlackbox, info: null})
 			}

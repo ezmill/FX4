@@ -69,11 +69,14 @@
         this.resize = function(){
             for(var i = 0; i < this.fbos.length; i++){
               this.fbos[i].renderTarget.setSize(renderSize.x, renderSize.y);
-              this.fbos[i].geometry.dispose();
-              this.fbos[i].geometry = new THREE.PlaneGeometry(renderSize.x, renderSize.y, 0)
-              this.geometry.dispose();
-              this.geometry = new THREE.PlaneGeometry(renderSize.x, renderSize.y, 0);
+              // this.fbos[i].geometry.dispose();
+              // this.fbos[i].mesh.scale(renderSize.x/oldX, renderSize.y/oldY,0)
+// 
+              // this.geometry.dispose();
+              // this.geometry = new THREE.PlaneGeometry(renderSize.x, renderSize.y, 0);
             }
+            // this.mesh.scale(renderSize.x/oldX, renderSize.y/oldY,0)
+
         }
 
         this.update = function(){
