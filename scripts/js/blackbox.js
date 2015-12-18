@@ -63,8 +63,10 @@ function blackbox (el, inputImage, origImage, cbs) {
     init();
     function init(){
         scene = new THREE.Scene();
-        camera = new THREE.OrthographicCamera( renderSize.x / - 2, renderSize.x / 2, renderSize.y / 2, renderSize.y / - 2, -10000, 10000 );
-        camera.position.set(0,0,0);
+        // camera = new THREE.OrthographicCamera( renderSize.x / - 2, renderSize.x / 2, renderSize.y / 2, renderSize.y / - 2, -10000, 10000 );
+        // camera.position.set(0,0,0);
+        camera = new THREE.Camera();
+        camera.position.z = 1;
         renderer = new THREE.WebGLRenderer({preserveDrawingBuffer:true});
         renderer.setSize( renderSize.x, renderSize.y );
         renderer.setClearColor(0xffffff,1.0);
@@ -367,10 +369,10 @@ function blackbox (el, inputImage, origImage, cbs) {
             renderSize = new THREE.Vector2(imgEl.width*(window.innerHeight/imgEl.height), window.innerHeight);
         }
         renderer.setSize( renderSize.x, renderSize.y );
-        camera.left = renderSize.x / - 2;
-        camera.right = renderSize.x / 2;
-        camera.top = renderSize.y / 2;
-        camera.bottom = renderSize.y / - 2;
+        // camera.left = renderSize.x / - 2;
+        // camera.right = renderSize.x / 2;
+        // camera.top = renderSize.y / 2;
+        // camera.bottom = renderSize.y / - 2;
         mask.resize();
         fbMaterial.resize();
         fbMaterial.setUniforms();

@@ -52,7 +52,7 @@
             this.material.uniforms["resolution"].value = new THREE.Vector2(renderSize.x, renderSize.y);
             this.material.uniforms["mouse"].value = new THREE.Vector2(renderSize.x, 0);
             
-            this.geometry = new THREE.PlaneGeometry(renderSize.x, renderSize.y, 0);
+            this.geometry = new THREE.PlaneGeometry(2,2, 0);
 
             this.mesh = new THREE.Mesh(this.geometry, this.material);
             this.mesh.position.set(0,0,0);
@@ -153,7 +153,7 @@
                 vertexShader: this.shader.vertexShader,
                 fragmentShader: this.shader.fragmentShader    
             });
-            this.geometry = new THREE.PlaneGeometry(renderSize.x, renderSize.y);
+            this.geometry = new THREE.PlaneGeometry(2,2);
             this.mesh = new THREE.Mesh(this.geometry, this.material);
             this.mesh.position.set(0, 0, 0);
             this.scene.add(this.mesh);
