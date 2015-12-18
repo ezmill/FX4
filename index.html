@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<!-- <link rel="stylesheet" href="assets/css/index.css"> -->
+		<link rel="stylesheet" href="icons/pe-icon-7-stroke/css/pe-icon-7-stroke.css">
+		<style>
+			body {
+				color: #fff;
+				font-family:Monospace;
+				font-size:13px;
+				margin: 0px;
+				/*text-align:center;*/
+				/*overflow: hidden;*/
+			}
+		</style>
+	</head>
+	<body>
+		<div id="BB-container"></div>
+		<script src="scripts/js/three.min.js"></script>
+		<script src="scripts/js/CustomShaders.js"></script>
+		<script src="scripts/js/CurvesShader.js"></script>
+		<script src="scripts/js/CustomShaders2.js"></script>
+		<script src="scripts/js/DenoiseShader.js"></script>
+		<script src="scripts/js/GlassShader.js"></script>
+		<script src="scripts/js/GradientShader.js"></script>
+		<script src="scripts/js/NeonGlowShader.js"></script>
+		<script src="scripts/js/OilPaintShader.js"></script>
+		<script src="scripts/js/PSDMask.js"></script>
+		<script src="scripts/js/RevertShader.js"></script>
+		<script src="scripts/js/RgbShiftShader.js"></script>
+		<script src="scripts/js/WarpFlowShader.js"></script>
+		<script src="scripts/js/FeedbackMaterial2.js"></script>
+		<script src="scripts/js/Effects.js"></script>
+		<script src="scripts/js/Mask3.js"></script>
+		<script src="scripts/js/blackbox.js"></script>
+		<script>
+		var renderSize; 
+		var mouse = new THREE.Vector2(0.0,0.0);
+		var time = 0.0;
+		var mouseDown = false;
+		var r2 = 0.0;
+		var audio = new Audio(), playing = false;
+		var origTex, origImage;
+			var blackboxEl = document.getElementById('BB-container')
+			imgEl = new Image();
+			imgEl.onload = function(){
+				var canvas = document.createElement('canvas')
+				canvas.width = imgEl.width;
+				canvas.height = imgEl.height;
+				var ctx = canvas.getContext('2d')
+				ctx.drawImage(imgEl, 0, 0);
+				if(window.innerWidth>imgEl.width*(window.innerHeight/imgEl.height)){
+				    renderSize = new THREE.Vector2(window.innerWidth, imgEl.height*(window.innerWidth/imgEl.width));
+				} else {
+				    renderSize = new THREE.Vector2(imgEl.width*(window.innerHeight/imgEl.height), window.innerHeight);
+				}       
+				origImage = canvas.toDataURL();
+				blackbox(blackboxEl, origImage, origImage, {save: onCompleteBlackbox, info: null})
+			}
+			imgEl.src = "assets/textures/newtest.jpg";
+			
+			function onCompleteBlackbox (err, inputImage, origImage) {
+			    if (err) { console.error(err); return }
+			    var image = new Image();
+			    image.src = inputImage;
+			    image.onload = function(){
+				    document.body.appendChild(image);
+			    }
+				// blackbox(blackboxEl, inputImage, origImage, onCompleteBlackbox)
+			}
+		</script>
+	</body>
+</html>
