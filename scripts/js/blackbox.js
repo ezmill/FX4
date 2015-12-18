@@ -129,15 +129,15 @@ function blackbox (el, inputImage, origImage, cbs) {
         fbMaterial = new FeedbackMaterial(renderer, scene, camera, texture, effect.shaders);  
         fbMaterial.init();
         if(effect.name == "neon glow"){
-            var tex = THREE.ImageUtils.loadTexture(path + "neon.png");
+            var tex = THREE.ImageUtils.loadTexture(path + "D12_Teatum_Jones_MASK1.png");
             tex.minFilter = tex.magFilter = THREE.LinearFilter;
             mask.setMask(tex);
         } else if(effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos"){
-            var tex = THREE.ImageUtils.loadTexture(path + "repos.png")
+            var tex = THREE.ImageUtils.loadTexture(path + "D12_Teatum_Jones_MASK2.png")
             tex.minFilter = tex.magFilter = THREE.LinearFilter;
             mask.setMask(tex);
         } else if(effect.name == "warp"){
-            var tex = THREE.ImageUtils.loadTexture(path + "warp.png");
+            var tex = THREE.ImageUtils.loadTexture(path + "D12_Teatum_Jones_MASK3.png");
             tex.minFilter = tex.magFilter = THREE.LinearFilter;
             mask.setMask(tex);
         }  else {
@@ -195,15 +195,15 @@ function blackbox (el, inputImage, origImage, cbs) {
             fbMaterial = new FeedbackMaterial(renderer, scene, camera, texture, effect.shaders);            
             fbMaterial.init();
             if(effect.name == "neon glow"){
-                var tex = THREE.ImageUtils.loadTexture(path + "neon.png");
+                var tex = THREE.ImageUtils.loadTexture(path + "D12_Teatum_Jones_MASK1.png");
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
             } else if(effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos"){
-                var tex = THREE.ImageUtils.loadTexture(path + "repos.png")
+                var tex = THREE.ImageUtils.loadTexture(path + "D12_Teatum_Jones_MASK2.png")
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
             } else if(effect.name == "warp"){
-                var tex = THREE.ImageUtils.loadTexture(path + "warp.png");
+                var tex = THREE.ImageUtils.loadTexture(path + "D12_Teatum_Jones_MASK3.png");
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
             }  else {
