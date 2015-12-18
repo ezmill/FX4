@@ -132,7 +132,7 @@ function blackbox (el, inputImage, origImage, cbs) {
             var tex = THREE.ImageUtils.loadTexture(path + "neon.png");
             tex.minFilter = tex.magFilter = THREE.LinearFilter;
             mask.setMask(tex);
-        } else if(effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert"){
+        } else if(effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos"){
             var tex = THREE.ImageUtils.loadTexture(path + "repos.png")
             tex.minFilter = tex.magFilter = THREE.LinearFilter;
             mask.setMask(tex);
@@ -198,7 +198,7 @@ function blackbox (el, inputImage, origImage, cbs) {
                 var tex = THREE.ImageUtils.loadTexture(path + "neon.png");
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
-            } else if(effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert"){
+            } else if(effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos"){
                 var tex = THREE.ImageUtils.loadTexture(path + "repos.png")
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
