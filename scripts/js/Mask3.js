@@ -86,7 +86,7 @@ function Mask(){
 		this.outputScene.add(this.maskMesh);
 		this.maskMesh.position.z = 0;
 
-		this.alphaTex = THREE.ImageUtils.loadTexture(path + "warp.png");
+		this.alphaTex = THREE.ImageUtils.loadTexture(path + "mask1.png");
 		this.alphaTex.minFilter = this.alphaTex.magFilter = THREE.LinearFilter;
 		this.overlayGeometry = new THREE.PlaneBufferGeometry(renderSize.x, renderSize.y);
 		this.overlayMaterial = new THREE.MeshBasicMaterial({
