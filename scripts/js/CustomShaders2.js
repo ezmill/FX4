@@ -1173,3 +1173,1686 @@ var CustomShaders = function(){
 		
 	}
 }
+var CurvesShader = function(red, green, blue){
+        function clamp(lo, value, hi) {
+            return Math.max(lo, Math.min(value, hi));
+        }
+        function splineInterpolate(points) {
+            var interpolator = new SplineInterpolator(points);
+            var array = [];
+            for (var i = 0; i < 256; i++) {
+                array.push(clamp(0, Math.floor(interpolator.interpolate(i / 255) * 256), 255));
+            }
+            return array;
+        }
+
+        red = splineInterpolate(red);
+        if (arguments.length == 1) {
+            green = blue = red;
+        } else {
+            green = splineInterpolate(green);
+            blue = splineInterpolate(blue);
+        }
+        // createCanvas(red, green, blue);
+        var array = [];
+        for (var i = 0; i < 256; i++) {
+            array.splice(array.length, 0, red[i], green[i], blue[i], 255);
+        }
+        // console.log(array);
+        curveMap = new THREE.DataTexture(array, 256, 1, THREE.RGBAFormat, THREE.UnsignedByteType);
+        curveMap.minFilter = curveMap.magFilter = THREE.LinearFilter;
+        curveMap.needsUpdate = true;
+        // var noiseSize = 256;
+        var size = 256;
+        var data = new Uint8Array( 4 * size );
+        for ( var i = 0; i < size * 4; i ++ ) {
+            data[ i ] = array[i] | 0;
+        }
+        var dt = new THREE.DataTexture( data, 256, 1, THREE.RGBAFormat );
+        // dt.wrapS = THREE.ClampToEdgeWrapping;
+        // dt.wrapT = THREE.ClampToEdgeWrapping;
+        dt.needsUpdate = true;
+        // console.log(dt);
+        this.uniforms = THREE.UniformsUtils.merge([
+            {
+                "texture"  : { type: "t", value: null },
+                "origTex"  : { type: "t", value: null },
+                "curveMap"  : { type: "t", value: dt },
+                "alpha"  : { type: "t", value: null },
+                "mouse"  : { type: "v2", value: null },
+                "resolution"  : { type: "v2", value: null },
+                "time"  : { type: "f", value: null },
+                "id"  : { type: "i", value: null },
+                "id2"  : { type: "i", value: null }
+
+            }
+        ]);
+
+        this.vertexShader = [
+
+            "varying vec2 vUv;",
+            "void main() {",
+            "    vUv = uv;",
+            "    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+            "}"
+        
+        ].join("\n");
+        
+        this.fragmentShader = [
+            
+            "uniform sampler2D texture;",
+            "uniform sampler2D origTex;",
+            "uniform sampler2D alpha;",
+            "uniform sampler2D curveMap;",
+            "uniform vec2 resolution;",
+            "uniform vec2 mouse;",
+            "uniform int id;",
+            "uniform int id2;",
+            "uniform float time;",
+            "varying vec2 vUv;",
+
+            "void main(){",
+            
+            "   vec4 col = texture2D(texture, vUv);",
+            "   vec3 alpha = texture2D(alpha, vUv).rgb;",
+
+            "   vec4 curveColor = texture2D(texture, vUv);",
+            "   curveColor.r = texture2D(curveMap, vec2(curveColor.r)).r;",
+            "   curveColor.g = texture2D(curveMap, vec2(curveColor.g)).g;",
+            "   curveColor.b = texture2D(curveMap, vec2(curveColor.b)).b;",
+
+            "   if(dot(alpha, vec3(1.0))/3.0 > 0.1){",
+            "        col.rgb = mix( col.rgb, curveColor.rgb, dot(alpha, vec3(1.0))/3.0);",
+            "   }",
+
+            "   gl_FragColor = vec4(col.rgb,1.0);",
+            "}",
+
+
+        
+        ].join("\n");
+}
+
+function SplineInterpolator(points) {
+    var n = points.length;
+    this.xa = [];
+    this.ya = [];
+    this.u = [];
+    this.y2 = [];
+
+    points.sort(function(a, b) {
+        return a[0] - b[0];
+    });
+    for (var i = 0; i < n; i++) {
+        this.xa.push(points[i][0]);
+        this.ya.push(points[i][1]);
+    }
+
+    this.u[0] = 0;
+    this.y2[0] = 0;
+
+    for (var i = 1; i < n - 1; ++i) {
+        // This is the decomposition loop of the tridiagonal algorithm. 
+        // y2 and u are used for temporary storage of the decomposed factors.
+        var wx = this.xa[i + 1] - this.xa[i - 1];
+        var sig = (this.xa[i] - this.xa[i - 1]) / wx;
+        var p = sig * this.y2[i - 1] + 2.0;
+
+        this.y2[i] = (sig - 1.0) / p;
+
+        var ddydx = 
+            (this.ya[i + 1] - this.ya[i]) / (this.xa[i + 1] - this.xa[i]) - 
+            (this.ya[i] - this.ya[i - 1]) / (this.xa[i] - this.xa[i - 1]);
+
+        this.u[i] = (6.0 * ddydx / wx - sig * this.u[i - 1]) / p;
+    }
+
+    this.y2[n - 1] = 0;
+
+    // This is the backsubstitution loop of the tridiagonal algorithm
+    for (var i = n - 2; i >= 0; --i) {
+        this.y2[i] = this.y2[i] * this.y2[i + 1] + this.u[i];
+    }
+}
+
+SplineInterpolator.prototype.interpolate = function(x) {
+    var n = this.ya.length;
+    var klo = 0;
+    var khi = n - 1;
+
+    // We will find the right place in the table by means of
+    // bisection. This is optimal if sequential calls to this
+    // routine are at random values of x. If sequential calls
+    // are in order, and closely spaced, one would do better
+    // to store previous values of klo and khi.
+    while (khi - klo > 1) {
+        var k = (khi + klo) >> 1;
+
+        if (this.xa[k] > x) {
+            khi = k; 
+        } else {
+            klo = k;
+        }
+    }
+
+    var h = this.xa[khi] - this.xa[klo];
+    var a = (this.xa[khi] - x) / h;
+    var b = (x - this.xa[klo]) / h;
+
+    // Cubic spline polynomial is now evaluated.
+    return a * this.ya[klo] + b * this.ya[khi] + 
+        ((a * a * a - a) * this.y2[klo] + (b * b * b - b) * this.y2[khi]) * (h * h) / 6.0;
+};
+
+function createCanvas(red, green, blue){
+    var canvas = document.createElement("canvas");
+    
+}
+var DenoiseShader = function(){
+        this.uniforms = THREE.UniformsUtils.merge([
+            {
+                "texture"  : { type: "t", value: null },
+                "origTex"  : { type: "t", value: null },
+                "alpha"  : { type: "t", value: null },
+                "mouse"  : { type: "v2", value: null },
+                "resolution"  : { type: "v2", value: null },
+                "time"  : { type: "f", value: null },
+                "r2"  : { type: "f", value: null }
+
+            }
+        ]);
+
+        this.vertexShader = [
+
+            "varying vec2 vUv;",
+            "void main() {",
+            "    vUv = uv;",
+            "    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+            "}"
+        
+        ].join("\n");
+        
+        this.fragmentShader = [
+            
+            "uniform sampler2D texture;",
+            "uniform sampler2D alpha;",
+            "uniform vec2 resolution;",
+            "uniform vec2 mouse;",
+            "uniform float r2;",
+            "uniform float time;",
+            "varying vec2 vUv;",
+
+            "void main() {",
+
+                "vec3 col = texture2D(texture, vUv).rgb;",
+                "vec4 alpha = texture2D(alpha, vUv);",
+
+                "vec4 center = texture2D(texture, vUv);",
+                "float exponent = 1.0;",
+                "vec4 color = vec4(0.0);",
+                "float total = 0.0;",
+                "for (float x = -4.0; x <= 4.0; x += 2.0) {",
+                "    for (float y = -4.0; y <= 4.0; y += 2.0) {",
+                "        vec4 sample = texture2D(texture, vUv + vec2(x, y) / resolution);",
+                "        float weight = 1.0 - abs(dot(sample.rgb - center.rgb, vec3(0.25)));",
+                "        weight = pow(weight, exponent);",
+                "        color += sample * weight;",
+                "        total += weight;",
+                "    }",
+                "}",
+                "vec4 col2 = color / total;",
+                
+                // "col2*=2.0;",
+                // "vec3 col2 = texture2D(texture, vUv).rgb*vec3(2.0,2.0,2.0);",
+                "if(dot(alpha.rgb, vec3(1.0))/3.0 > 0.1){",
+                // "    col *= vec3(1.0, 0.0, 0.0);   ",
+                // "    float f = smoothstep(r2, r2 - 0.5, r);",
+                // "    col = mix( col, col2, f);",
+                "   col = mix( col, col2.rgb, dot(alpha.rgb, vec3(1.0))/3.0);",
+                "}",
+                "gl_FragColor = vec4(mix(col, alpha.rgb,0.0),1.0);",
+            "}"
+
+
+        
+        ].join("\n");
+}
+var GlassShader = function(){
+        this.uniforms = THREE.UniformsUtils.merge([
+            {
+                "texture"  : { type: "t", value: null },
+                "origTex"  : { type: "t", value: null },
+                "alpha"  : { type: "t", value: null },
+                "mouse"  : { type: "v2", value: null },
+                "mask"  : { type: "t", value: null },
+                "resolution"  : { type: "v2", value: null },
+                "time"  : { type: "f", value: null },
+                "r2"  : { type: "f", value: null }
+
+            }
+        ]);
+        this.vertexShader = [
+
+            "varying vec2 vUv;",
+            "void main() {",
+            "    vUv = uv;",
+            "    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+            "}"
+        
+        ].join("\n");
+        
+        this.fragmentShader = [
+            
+            "uniform sampler2D texture;",
+            "uniform sampler2D alpha;",
+            "uniform sampler2D origTex;",
+            "uniform sampler2D mask;",
+            "uniform vec2 resolution;",
+            "uniform vec2 mouse;",
+            "uniform float r2;",
+            "uniform float time;",
+            "varying vec2 vUv;",
+
+            "void main() {",
+
+                "vec3 col = texture2D(texture, vUv).rgb;",
+                "vec4 alpha = texture2D(alpha, vUv);",
+                "vec4 mask = texture2D(mask, vUv);",
+                // "vec4 origTex = texture2D(origTex, vUv);",
+                "vec2 uv = gl_FragCoord.xy;",
+                "gl_FragColor = texture2D(origTex, uv /= resolution.xy );",
+                "uv += gl_FragColor.r / gl_FragColor.g - (sin(time)*0.25) - 1.0;",
+                "gl_FragColor -= gl_FragColor - texture2D(texture, uv);",
+                // "if(dot(mask.rgb, vec3(1.0))/3.0 < 0.0001){",
+                // "    float f = smoothstep(r2, r2 - 0.5, r);",
+                // "    col = mix( col, col2.rgb, f);",
+                // "   col = mix( col, col2.rgb, dot(alpha.rgb, vec3(1.0))/3.0);",
+                // "}",
+                // "gl_FragColor = vec4(col,1.0);",
+                // "gl_FragColor = col;",
+            "}"
+
+
+        
+        ].join("\n");
+}
+var GradientShader = function(){
+        this.uniforms = THREE.UniformsUtils.merge([
+            {
+                "texture"  : { type: "t", value: null },
+                "origTex"  : { type: "t", value: null },
+                "alpha"  : { type: "t", value: null },
+                "mouse"  : { type: "v2", value: null },
+                "resolution"  : { type: "v2", value: null },
+                "time"  : { type: "f", value: null },
+                "r2"  : { type: "f", value: null },
+                "id"  : { type: "i", value: null },
+                "id2"  : { type: "i", value: null }
+
+            }
+        ]);
+
+        this.vertexShader = [
+
+            "varying vec2 vUv;",
+            "void main() {",
+            "    vUv = uv;",
+            "    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+            "}"
+        
+        ].join("\n");
+        
+        this.fragmentShader = [
+            
+            "uniform sampler2D texture;",
+            "uniform sampler2D origTex;",
+            "uniform sampler2D alpha;",
+            "uniform vec2 resolution;",
+            "uniform vec2 mouse;",
+            "uniform int id;",
+            "uniform int id2;",
+            "uniform float time;",
+            "uniform float r2;",
+            "varying vec2 vUv;",
+
+            "void main()",
+            "{",
+			"	vec2 uv = vUv;",
+			// "	vec4 color = mix(mix(vec4(0.5+0.5*cos(time), 1.0 - uv.yx,0.5), texture2D(texture, vUv), 0.5), texture2D(texture, vUv), (0.5 + 0.5*sin((-sin(time) + uv.x*sin(time)*2.0)*(-1.0 + uv.y*2.0)*5.0)));",
+            "   vec4 mix1 = vec4(0.0, 114.0/255.0, 182.0/255.0, 1.0);",
+            "   vec4 mix2 = vec4(1.0);",
+            "   vec4 mix3 = vec4(122.0/255.0, 175.0/255.0, 255.0/255.0, 1.0);",
+            "   vec4 mix4 = vec4(88.0/255.0, 233.0/255.0, 192.0/255.0, 1.0);",
+            "   vec4 color1 = mix(mix1, mix2, uv.y * sin(time));",
+            "   vec4 color2 = mix(mix3, mix4, uv.x * cos(time));",
+            "   vec4 color3 = mix(color1, color2, 0.5);",
+            // "   vec4 color = mix(color3, texture2D(texture, vUv), 0.5);",
+            "   vec4 color = mix(mix(color3, texture2D(texture, vUv), 0.5), texture2D(texture, vUv), (0.5 + 0.5*sin((-sin(time) + uv.x*sin(time)*2.0)*(-1.0 + uv.y*2.0)*5.0)));",
+
+            "	vec3 col = texture2D(texture, vUv).rgb;",
+            "	vec3 alpha = texture2D(alpha, vUv).rgb;",
+            // "     vec2 q = vUv;",
+            // "     vec2 p = -1.0 + 2.0*q;",
+            // "     p.x *= resolution.x/resolution.y;",
+            // "     vec2 m = mouse;",
+            // "     m.x *= resolution.x/resolution.y;",
+            // "     float r = sqrt( dot((p - m), (p - m)) );",
+            // "     float a = atan(p.y, p.x);",
+            // "     if(r < r2){",
+            // "            float f = smoothstep(r2, r2 - 0.5, r);",
+            // "             col = mix( col, color.rgb, f);",
+            // "     }",
+	        "if(dot(alpha.rgb, vec3(1.0))/3.0 > 0.1){",
+	        "   col = mix( col, color.rgb, dot(alpha.rgb, vec3(1.0))/3.0);",
+            "}",
+
+            "     gl_FragColor = vec4(col,1.0);",
+            "}",
+
+
+        
+        ].join("\n");
+}
+
+ var NeonGlowShader = function(){
+         this.uniforms = THREE.UniformsUtils.merge([
+             {
+                 "texture"  : { type: "t", value: null },
+                 "origTex"  : { type: "t", value: null },
+                 "alpha"  : { type: "t", value: null },
+                 "mask" : {type: "t", value: null},
+                 "mouse"  : { type: "v2", value: null },
+                 "resolution"  : { type: "v2", value: null },
+                 "time"  : { type: "f", value: null },
+                 "r2"  : { type: "f", value: null }
+
+             }
+         ]);
+         this.vertexShader = [
+
+             "varying vec2 vUv;",
+             "void main() {",
+             "    vUv = uv;",
+             "    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+             "}"
+         
+         ].join("\n");
+         
+         this.fragmentShader = [
+             
+            "uniform sampler2D texture;",
+            "uniform sampler2D alpha;",
+            "uniform sampler2D mask;",
+            "uniform vec2 resolution;",
+            "uniform vec2 mouse;",
+            "uniform float r2;",
+            "uniform float time;",
+            "varying vec2 vUv;",
+            
+            "vec3 darken( vec3 s, vec3 d )",
+            "{",
+            "   return min(s,d);",
+            "}",
+
+            "vec3 multiply( vec3 s, vec3 d )",
+            "{",
+            "   return s*d;",
+            "}",
+
+            "vec3 colorBurn( vec3 s, vec3 d )",
+            "{",
+            "   return 1.0 - (1.0 - d) / s;",
+            "}",
+
+            "vec3 linearBurn( vec3 s, vec3 d )",
+            "{",
+            "   return s + d - 1.0;",
+            "}",
+
+            "vec3 darkerColor( vec3 s, vec3 d )",
+            "{",
+            "   return (s.x + s.y + s.z < d.x + d.y + d.z) ? s : d;",
+            "}",
+
+            "vec3 lighten( vec3 s, vec3 d )",
+            "{",
+            "   return max(s,d);",
+            "}",
+
+            "vec3 screen( vec3 s, vec3 d )",
+            "{",
+            "   return s + d - s * d;",
+            "}",
+
+            "vec3 colorDodge( vec3 s, vec3 d )",
+            "{",
+            "   return d / (1.0 - s);",
+            "}",
+
+            "vec3 linearDodge( vec3 s, vec3 d )",
+            "{",
+            "   return s + d;",
+            "}",
+
+            "vec3 lighterColor( vec3 s, vec3 d )",
+            "{",
+            "   return (s.x + s.y + s.z > d.x + d.y + d.z) ? s : d;",
+            "}",
+
+            "float overlay( float s, float d )",
+            "{",
+            "   return (d < 0.5) ? 2.0 * s * d : 1.0 - 2.0 * (1.0 - s) * (1.0 - d);",
+            "}",
+
+            "vec3 overlay( vec3 s, vec3 d )",
+            "{",
+            "   vec3 c;",
+            "   c.x = overlay(s.x,d.x);",
+            "   c.y = overlay(s.y,d.y);",
+            "   c.z = overlay(s.z,d.z);",
+            "   return c;",
+            "}",
+
+            "float softLight( float s, float d )",
+            "{",
+            "   return (s < 0.5) ? d - (1.0 - 2.0 * s) * d * (1.0 - d) ",
+            "       : (d < 0.25) ? d + (2.0 * s - 1.0) * d * ((16.0 * d - 12.0) * d + 3.0) ",
+            "                    : d + (2.0 * s - 1.0) * (sqrt(d) - d);",
+            "}",
+
+            "vec3 softLight( vec3 s, vec3 d )",
+            "{",
+            "   vec3 c;",
+            "   c.x = softLight(s.x,d.x);",
+            "   c.y = softLight(s.y,d.y);",
+            "   c.z = softLight(s.z,d.z);",
+            "   return c;",
+            "}",
+
+            "float hardLight( float s, float d )",
+            "{",
+            "   return (s < 0.5) ? 2.0 * s * d : 1.0 - 2.0 * (1.0 - s) * (1.0 - d);",
+            "}",
+
+            "vec3 hardLight( vec3 s, vec3 d )",
+            "{",
+            "   vec3 c;",
+            "   c.x = hardLight(s.x,d.x);",
+            "   c.y = hardLight(s.y,d.y);",
+            "   c.z = hardLight(s.z,d.z);",
+            "   return c;",
+            "}",
+
+            "float vividLight( float s, float d )",
+            "{",
+            "   return (s < 0.5) ? 1.0 - (1.0 - d) / (2.0 * s) : d / (2.0 * (1.0 - s));",
+            "}",
+
+            "vec3 vividLight( vec3 s, vec3 d )",
+            "{",
+            "   vec3 c;",
+            "   c.x = vividLight(s.x,d.x);",
+            "   c.y = vividLight(s.y,d.y);",
+            "   c.z = vividLight(s.z,d.z);",
+            "   return c;",
+            "}",
+
+            "vec3 linearLight( vec3 s, vec3 d )",
+            "{",
+            "   return 2.0 * s + d - 1.0;",
+            "}",
+
+            "float pinLight( float s, float d )",
+            "{",
+            "   return (2.0 * s - 1.0 > d) ? 2.0 * s - 1.0 : (s < 0.5 * d) ? 2.0 * s : d;",
+            "}",
+
+            "vec3 pinLight( vec3 s, vec3 d )",
+            "{",
+            "   vec3 c;",
+            "   c.x = pinLight(s.x,d.x);",
+            "   c.y = pinLight(s.y,d.y);",
+            "   c.z = pinLight(s.z,d.z);",
+            "   return c;",
+            "}",
+
+            "vec3 hardMix( vec3 s, vec3 d )",
+            "{",
+            "   return floor(s + d);",
+            "}",
+
+            "vec3 difference( vec3 s, vec3 d )",
+            "{",
+            "   return abs(d - s);",
+            "}",
+
+            "vec3 exclusion( vec3 s, vec3 d )",
+            "{",
+            "   return s + d - 2.0 * s * d;",
+            "}",
+
+            "vec3 subtract( vec3 s, vec3 d )",
+            "{",
+            "   return s - d;",
+            "}",
+
+            "vec3 divide( vec3 s, vec3 d )",
+            "{",
+            "   return s / d;",
+            "}",
+
+            "// rgb<-->hsv functions by Sam Hocevar",
+            "// http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl",
+            "vec3 rgb2hsv(vec3 c)",
+            "{",
+            "   vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);",
+            "   vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));",
+            "   vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));",
+            "   ",
+            "   float d = q.x - min(q.w, q.y);",
+            "   float e = 1.0e-10;",
+            "   return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);",
+            "}",
+
+            "vec3 hsv2rgb(vec3 c)",
+            "{",
+            "   vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);",
+            "   vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);",
+            "   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);",
+            "}",
+
+            "vec3 hue( vec3 s, vec3 d )",
+            "{",
+            "   d = rgb2hsv(d);",
+            "   d.x = rgb2hsv(s).x;",
+            "   return hsv2rgb(d);",
+            "}",
+
+            "vec3 color( vec3 s, vec3 d )",
+            "{",
+            "   s = rgb2hsv(s);",
+            "   s.z = rgb2hsv(d).z;",
+            "   return hsv2rgb(s);",
+            "}",
+
+            "vec3 saturation( vec3 s, vec3 d )",
+            "{",
+            "   d = rgb2hsv(d);",
+            "   d.y = rgb2hsv(s).y;",
+            "   return hsv2rgb(d);",
+            "}",
+
+            "vec3 luminosity( vec3 s, vec3 d )",
+            "{",
+            "   float dLum = dot(d, vec3(0.3, 0.59, 0.11));",
+            "   float sLum = dot(s, vec3(0.3, 0.59, 0.11));",
+            "   float lum = sLum - dLum;",
+            "   vec3 c = d + lum;",
+            "   float minC = min(min(c.x, c.y), c.z);",
+            "   float maxC = max(max(c.x, c.y), c.z);",
+            "   if(minC < 0.0) return sLum + ((c - sLum) * sLum) / (sLum - minC);",
+            "   else if(maxC > 1.0) return sLum + ((c - sLum) * (1.0 - sLum)) / (maxC - sLum);",
+            "   else return c;",
+            "}",
+            "vec3 sample(const int x, const int y, in vec2 fragCoord)",
+            "{",
+            "    vec2 uv = fragCoord.xy / resolution.xy * resolution.xy;",
+            "    uv = (uv + vec2(x, y)) / resolution.xy;",
+            "    return texture2D(texture, uv).xyz;",
+            "}",
+
+            "float luminance(vec3 c)",
+            "{",
+            "    return dot(c, vec3(.2126, .7152, .0722));",
+            "}",
+
+            "vec3 filter(in vec2 fragCoord)",
+            "{",
+            "    vec3 hc =sample(-1,-1, fragCoord) *  1. + sample( 0,-1, fragCoord) *  2.",
+            "             +sample( 1,-1, fragCoord) *  1. + sample(-1, 1, fragCoord) * -1.",
+            "             +sample( 0, 1, fragCoord) * -2. + sample( 1, 1, fragCoord) * -1.;        ",
+
+            "    vec3 vc =sample(-1,-1, fragCoord) *  1. + sample(-1, 0, fragCoord) *  2.",
+            "             +sample(-1, 1, fragCoord) *  1. + sample( 1,-1, fragCoord) * -1.",
+            "             +sample( 1, 0, fragCoord) * -2. + sample( 1, 1, fragCoord) * -1.;",
+
+            "    return sample(0, 0, fragCoord) * pow(luminance(vc*vc + hc*hc), .6);",
+            "}",
+            "float lookup(vec2 p, float dx, float dy)",
+            "{",
+            "float d = sin(time * 5.0)*0.5 + 1.5; // kernel offset",
+            "    vec2 uv = (p.xy + vec2(dx * d, dy * d)) / resolution.xy;",
+            "    vec4 c = texture2D(texture, uv.xy);",
+            "    ",
+            "    // return as luma",
+            "    return 0.2126*c.r + 0.7152*c.g + 0.0722*c.b;",
+            "}",
+            "void main()",
+            "{",
+            "float d = sin(time * 5.0)*0.5 + 1.5; // kernel offset",
+
+            // "    float u = gl_FragCoord.x / resolution.x;",
+            // "    float m = mouse.x / resolution.x;",
+            // "    ",
+            // "    float l = smoothstep(0., 1. / resolution.y, abs(m - u));",
+            // "    ",
+            // "    vec2 fc = gl_FragCoord.xy;",
+            // "    // fc.y = resolution.y - fragCoord.y;",
+            // "    ",
+            // "    vec3 cf = filter(fc);",
+            // "    vec3 cl = sample(0, 0, fc);",
+            // "    vec3 SOBEL = (u < m ? cl : cf) * l;",
+// 
+            "vec2 p = gl_FragCoord.xy;",
+    
+            "// simple sobel edge detection",
+            "float gx = 0.0;",
+            "gx += -1.0 * lookup(p, -1.0, -1.0);",
+            "gx += -2.0 * lookup(p, -1.0,  0.0);",
+            "gx += -1.0 * lookup(p, -1.0,  1.0);",
+            "gx +=  1.0 * lookup(p,  1.0, -1.0);",
+            "gx +=  2.0 * lookup(p,  1.0,  0.0);",
+            "gx +=  1.0 * lookup(p,  1.0,  1.0);",
+            
+            "float gy = 0.0;",
+            "gy += -1.0 * lookup(p, -1.0, -1.0);",
+            "gy += -2.0 * lookup(p,  0.0, -1.0);",
+            "gy += -1.0 * lookup(p,  1.0, -1.0);",
+            "gy +=  1.0 * lookup(p, -1.0,  1.0);",
+            "gy +=  2.0 * lookup(p,  0.0,  1.0);",
+            "gy +=  1.0 * lookup(p,  1.0,  1.0);",
+            
+            "// hack: use g^2 to conceal noise in the video",
+            "float g = gx*gx + gy*gy;",
+            "float g2 = g * (sin(time) / 2.0 + 0.5);",
+            
+            "vec4 SOBEL = texture2D(texture, p / resolution.xy);",
+            "SOBEL += vec4(g*(235.0/255.0), g*(64.0/255.0), g*(10.0/255.0), 1.0);",
+// 
+            "vec4 center = texture2D(texture, vUv);",
+            "float exponent = 1.0;",
+            "vec4 color = vec4(0.0);",
+            "float total = 0.0;",
+            "for (float x = -4.0; x <= 4.0; x += 2.0) {",
+            "    for (float y = -4.0; y <= 4.0; y += 2.0) {",
+            "        vec4 sample = texture2D(texture, vUv + vec2(x, y) / resolution);",
+            "        float weight = 1.0 - abs(dot(sample.rgb - center.rgb, vec3(0.25)));",
+            "        weight = pow(weight, exponent);",
+            "        color += sample * weight;",
+            "        total += weight;",
+            "    }",
+            "}",
+            "vec4 BLUR = color / total;",
+            "vec4 ORIGINAL = texture2D(texture, vUv);",
+
+            // "vec3 FINAL = overlay(BLUR.rgb, SOBEL.rgb);",
+            // "FINAL = difference( FINAL, ORIGINAL.rgb);",
+
+            "vec3 FINAL = difference(ORIGINAL.rgb, SOBEL.rgb);",
+            "FINAL = overlay( FINAL, BLUR.rgb);",
+            "FINAL = saturation(FINAL, SOBEL.rgb);",
+            "FINAL = overlay( FINAL, ORIGINAL.rgb);",
+
+
+            "    vec3 col = texture2D(texture, vUv).rgb;",
+            "    vec4 alpha = texture2D(alpha, vUv);",
+            "    vec4 mask = texture2D(mask, vUv);",
+            "    if((dot(alpha.rgb, vec3(1.0))/3.0 < 0.99999)){",
+            "       col = mix( col, FINAL, dot(alpha.rgb, vec3(1.0))/3.0);",
+            "    }",
+
+            "    gl_FragColor = vec4(col, 1);",
+            // "    gl_FragColor = mask;",
+            "}"
+
+
+         
+         ].join("\n");
+ }
+  var OilPaintShader = function(){
+         this.uniforms = THREE.UniformsUtils.merge([
+             {
+                 "texture"  : { type: "t", value: null },
+                 "origTex"  : { type: "t", value: null },
+                 "alpha"  : { type: "t", value: null },
+                 "mask"  : { type: "t", value: null },
+                 "mouse"  : { type: "v2", value: null },
+                 "resolution"  : { type: "v2", value: null },
+                 "time"  : { type: "f", value: null },
+                 "r2"  : { type: "f", value: null }
+
+             }
+         ]);
+
+         this.vertexShader = [
+
+             "varying vec2 vUv;",
+             "void main() {",
+             "    vUv = uv;",
+             "    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+             "}"
+         
+         ].join("\n");
+         
+         this.fragmentShader = [
+             
+             "uniform sampler2D texture;",
+             "uniform sampler2D alpha;",
+             "uniform sampler2D mask;",
+             "uniform vec2 resolution;",
+             "uniform vec2 mouse;",
+             "uniform float r2;",
+             "uniform float time;",
+             "varying vec2 vUv;",
+
+              "const int radius = 1;",
+
+              "float rand(vec2 co){",
+              "  // implementation found at: lumina.sourceforge.net/Tutorials/Noise.html",
+              "  return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);",
+              "}",
+
+              "float noise2f( in vec2 p )",
+              "{",
+              "  vec2 ip = vec2(floor(p));",
+              "  vec2 u = fract(p);",
+              "  // http://www.iquilezles.org/www/articles/morenoise/morenoise.htm",
+              "  u = u*u*(3.0-2.0*u);",
+              "  //u = u*u*u*((6.0*u-15.0)*u+10.0);",
+              "  ",
+              "  float res = mix(",
+              "    mix(rand(ip),  rand(ip+vec2(1.0,0.0)),u.x),",
+              "    mix(rand(ip+vec2(0.0,1.0)),   rand(ip+vec2(1.0,1.0)),u.x),",
+              "    u.y)",
+              "  ;",
+              "  return res*res;",
+              "  //return 2.0* (res-10.7);",
+              "}",
+
+              "float fbm(vec2 c) {",
+              "  float f = 0.0;",
+              "  float w = 1.0;",
+              "  for (int i = 0; i < 8; i++) {",
+              "    f+= w*noise2f(c);",
+              "    c*=2.0;",
+              "    w*=0.5;",
+              "  }",
+              "  return f;",
+              "}",
+
+
+
+              "vec2 cMul(vec2 a, vec2 b) {",
+              "  return vec2( a.x*b.x -  a.y*b.y,a.x*b.y + a.y * b.x);",
+              "}",
+
+              "float pattern(  vec2 p, out vec2 q, out vec2 r )",
+              "{",
+              "  q.x = fbm( p  +0.00*time * 2.); // @SLIDER: 5. could represent velocity of wate",
+              "  q.y = fbm( p + vec2(1.0));",
+              "  ",
+              "  r.x = fbm( p +1.0*q + vec2(1.7,9.2)+0.15*time * 2. );",
+              "  r.y = fbm( p+ 1.0*q + vec2(8.3,2.8)+0.126*time * 2.);",
+              "  //r = cMul(q,q+0.1*time);",
+              "  return fbm(p +1.0*r + 0.0* time);",
+              "}",
+
+              "const vec3 color1 = vec3(0.101961,0.619608,0.666667);",
+              "const vec3 color2 = vec3(0.666667,0.666667,0.498039);",
+              "const vec3 color3 = vec3(0,0,0.164706);",
+              "const vec3 color4 = vec3(0.666667,1,1);",
+
+              "vec3 darken( vec3 s, vec3 d )",
+              "{",
+              "  return min(s,d);",
+              "}",
+
+              "vec3 multiply( vec3 s, vec3 d )",
+              "{",
+              "  return s*d;",
+              "}",
+
+              "vec3 colorBurn( vec3 s, vec3 d )",
+              "{",
+              "  return 1.0 - (1.0 - d) / s;",
+              "}",
+
+              "vec3 linearBurn( vec3 s, vec3 d )",
+              "{",
+              "  return s + d - 1.0;",
+              "}",
+
+              "vec3 darkerColor( vec3 s, vec3 d )",
+              "{",
+              "  return (s.x + s.y + s.z < d.x + d.y + d.z) ? s : d;",
+              "}",
+
+              "vec3 lighten( vec3 s, vec3 d )",
+              "{",
+              "  return max(s,d);",
+              "}",
+
+              "vec3 screen( vec3 s, vec3 d )",
+              "{",
+              "  return s + d - s * d;",
+              "}",
+
+              "vec3 colorDodge( vec3 s, vec3 d )",
+              "{",
+              "  return d / (1.0 - s);",
+              "}",
+
+              "vec3 linearDodge( vec3 s, vec3 d )",
+              "{",
+              "  return s + d;",
+              "}",
+
+              "vec3 lighterColor( vec3 s, vec3 d )",
+              "{",
+              "  return (s.x + s.y + s.z > d.x + d.y + d.z) ? s : d;",
+              "}",
+
+              "float overlay( float s, float d )",
+              "{",
+              "  return (d < 0.5) ? 2.0 * s * d : 1.0 - 2.0 * (1.0 - s) * (1.0 - d);",
+              "}",
+
+              "vec3 overlay( vec3 s, vec3 d )",
+              "{",
+              "  vec3 c;",
+              "  c.x = overlay(s.x,d.x);",
+              "  c.y = overlay(s.y,d.y);",
+              "  c.z = overlay(s.z,d.z);",
+              "  return c;",
+              "}",
+
+              "float softLight( float s, float d )",
+              "{",
+              "  return (s < 0.5) ? d - (1.0 - 2.0 * s) * d * (1.0 - d) ",
+              "    : (d < 0.25) ? d + (2.0 * s - 1.0) * d * ((16.0 * d - 12.0) * d + 3.0) ",
+              "           : d + (2.0 * s - 1.0) * (sqrt(d) - d);",
+              "}",
+
+              "vec3 softLight( vec3 s, vec3 d )",
+              "{",
+              "  vec3 c;",
+              "  c.x = softLight(s.x,d.x);",
+              "  c.y = softLight(s.y,d.y);",
+              "  c.z = softLight(s.z,d.z);",
+              "  return c;",
+              "}",
+
+              "float hardLight( float s, float d )",
+              "{",
+              "  return (s < 0.5) ? 2.0 * s * d : 1.0 - 2.0 * (1.0 - s) * (1.0 - d);",
+              "}",
+
+              "vec3 hardLight( vec3 s, vec3 d )",
+              "{",
+              "  vec3 c;",
+              "  c.x = hardLight(s.x,d.x);",
+              "  c.y = hardLight(s.y,d.y);",
+              "  c.z = hardLight(s.z,d.z);",
+              "  return c;",
+              "}",
+
+              "float vividLight( float s, float d )",
+              "{",
+              "  return (s < 0.5) ? 1.0 - (1.0 - d) / (2.0 * s) : d / (2.0 * (1.0 - s));",
+              "}",
+
+              "vec3 vividLight( vec3 s, vec3 d )",
+              "{",
+              "  vec3 c;",
+              "  c.x = vividLight(s.x,d.x);",
+              "  c.y = vividLight(s.y,d.y);",
+              "  c.z = vividLight(s.z,d.z);",
+              "  return c;",
+              "}",
+
+              "vec3 linearLight( vec3 s, vec3 d )",
+              "{",
+              "  return 2.0 * s + d - 1.0;",
+              "}",
+
+              "float pinLight( float s, float d )",
+              "{",
+              "  return (2.0 * s - 1.0 > d) ? 2.0 * s - 1.0 : (s < 0.5 * d) ? 2.0 * s : d;",
+              "}",
+
+              "vec3 pinLight( vec3 s, vec3 d )",
+              "{",
+              "  vec3 c;",
+              "  c.x = pinLight(s.x,d.x);",
+              "  c.y = pinLight(s.y,d.y);",
+              "  c.z = pinLight(s.z,d.z);",
+              "  return c;",
+              "}",
+
+              "vec3 hardMix( vec3 s, vec3 d )",
+              "{",
+              "  return floor(s + d);",
+              "}",
+
+              "vec3 difference( vec3 s, vec3 d )",
+              "{",
+              "  return abs(d - s);",
+              "}",
+
+              "vec3 exclusion( vec3 s, vec3 d )",
+              "{",
+              "  return s + d - 2.0 * s * d;",
+              "}",
+
+              "vec3 subtract( vec3 s, vec3 d )",
+              "{",
+              "  return s - d;",
+              "}",
+
+              "vec3 divide( vec3 s, vec3 d )",
+              "{",
+              "  return s / d;",
+              "}",
+
+              "//  rgb<-->hsv functions by Sam Hocevar",
+              "//  http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl",
+              "vec3 rgb2hsv(vec3 c)",
+              "{",
+              "  vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);",
+              "  vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));",
+              "  vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));",
+              "  ",
+              "  float d = q.x - min(q.w, q.y);",
+              "  float e = 1.0e-10;",
+              "  return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);",
+              "}",
+
+              "vec3 hsv2rgb(vec3 c)",
+              "{",
+              "  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);",
+              "  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);",
+              "  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);",
+              "}",
+
+              "vec3 hue( vec3 s, vec3 d )",
+              "{",
+              "  d = rgb2hsv(d);",
+              "  d.x = rgb2hsv(s).x;",
+              "  return hsv2rgb(d);",
+              "}",
+
+              "vec3 color( vec3 s, vec3 d )",
+              "{",
+              "  s = rgb2hsv(s);",
+              "  s.z = rgb2hsv(d).z;",
+              "  return hsv2rgb(s);",
+              "}",
+
+              "vec3 saturation( vec3 s, vec3 d )",
+              "{",
+              "  d = rgb2hsv(d);",
+              "  d.y = rgb2hsv(s).y;",
+              "  return hsv2rgb(d);",
+              "}",
+
+              "vec3 luminosity( vec3 s, vec3 d )",
+              "{",
+              "  float dLum = dot(d, vec3(0.3, 0.59, 0.11));",
+              "  float sLum = dot(s, vec3(0.3, 0.59, 0.11));",
+              "  float lum = sLum - dLum;",
+              "  vec3 c = d + lum;",
+              "  float minC = min(min(c.x, c.y), c.z);",
+              "  float maxC = max(max(c.x, c.y), c.z);",
+              "  if(minC < 0.0) return sLum + ((c - sLum) * sLum) / (sLum - minC);",
+              "  else if(maxC > 1.0) return sLum + ((c - sLum) * (1.0 - sLum)) / (maxC - sLum);",
+              "  else return c;",
+              "}",
+              "vec3 sample(const int x, const int y, vec2 delta, vec2 fragCoord)",
+              "{",
+              "  vec2 uv = (fragCoord.xy + vec2(x, y)) / resolution.xy;",
+              "  uv = uv + delta;",
+              "  //uv.y = 1.0 - uv.y;",
+              "  ",
+              "  return texture2D(texture, uv).xyz;",
+              "}",
+
+
+
+              " void main() ",
+              " {",
+              "   vec2 src_size = vec2 (1.0 / resolution.x, 1.0 / resolution.y);",
+              "     // vec2 uv = fragCoord.xy/resolution.xy;",
+              "     vec2 uv = vUv;",
+              "     float n = float((radius + 1) * (radius + 1));",
+              "     int i; ",
+              "   int j;",
+              "     vec3 m0 = vec3(0.0); vec3 m1 = vec3(0.0); vec3 m2 = vec3(0.0); vec3 m3 = vec3(0.0);",
+              "     vec3 s0 = vec3(0.0); vec3 s1 = vec3(0.0); vec3 s2 = vec3(0.0); vec3 s3 = vec3(0.0);",
+              "     vec3 c;",
+
+              "     vec2 q;",
+              "  vec2 r;",
+              "  vec2 c3 = 1000.0*vUv;",
+              "  float f = pattern(c3*0.01,q,r);",
+              "  vec3 col = mix(color1,color2,clamp((f*f)*4.0,0.0,1.0));",
+              "  col = color2;",
+              "  col = mix(col,color3,clamp(length(q),0.0,1.0));",
+              "  col = mix(col,color4,clamp(length(r.x),0.0,1.0));",
+              "  ",
+              "  vec3 col2 = (0.2*f*f*f+0.6*f*f+0.5*f)*col;",
+              "  vec2 delta =  col2.xy * 0.025;",
+              "   ",
+              "  const vec3 lumi = vec3(0.2126, 0.7152, 0.0722);",
+              "  ",
+              "  vec3 hc =sample(-1,-1,delta,gl_FragCoord.xy) *  1.0 + sample( 0,-1,delta,gl_FragCoord.xy) *  2.0",
+              "      +sample( 1,-1,delta,gl_FragCoord.xy) *  1.0 + sample(-1, 1,delta,gl_FragCoord.xy) * -1.0",
+              "      +sample( 0, 1,delta,gl_FragCoord.xy) * -2.0 + sample( 1, 1,delta,gl_FragCoord.xy) * -1.0;",
+              "    ",
+              "  vec3 vc =sample(-1,-1,delta,gl_FragCoord.xy) *  1.0 + sample(-1, 0,delta,gl_FragCoord.xy) *  2.0",
+              "      +sample(-1, 1,delta,gl_FragCoord.xy) *  1.0 + sample( 1,-1,delta,gl_FragCoord.xy) * -1.0",
+              "      +sample( 1, 0,delta,gl_FragCoord.xy) * -2.0 + sample( 1, 1,delta,gl_FragCoord.xy) * -1.0;",
+              "  ",
+              "  vec3 c2 = sample(0, 0,delta,gl_FragCoord.xy);",
+              "  ",
+              "  c2 -= pow(c2, vec3(0.2126, 0.7152, 0.0722)) * pow(dot(lumi, vc*vc + hc*hc), 0.5);",
+              "  ",
+
+              "  uv = uv + delta; ",
+              "   ",
+              "     for (int j = -radius; j <= 0; ++j)  {",
+              "         for (int i = -radius; i <= 0; ++i)  {",
+              "             c = texture2D(texture, uv + vec2(i,j) * src_size).rgb;",
+              "             m0 += c;",
+              "             s0 += c * c;",
+              "         }",
+              "     }",
+
+              "     for (int j = -radius; j <= 0; ++j)  {",
+              "         for (int i = 0; i <= radius; ++i)  {",
+              "             c = texture2D(texture, uv + vec2(i,j) * src_size).rgb;",
+              "             m1 += c;",
+              "             s1 += c * c;",
+              "         }",
+              "     }",
+
+              "     for (int j = 0; j <= radius; ++j)  {",
+              "         for (int i = 0; i <= radius; ++i)  {",
+              "             c = texture2D(texture, uv + vec2(i,j) * src_size).rgb;",
+              "             m2 += c;",
+              "             s2 += c * c;",
+              "         }",
+              "     }",
+
+              "     for (int j = 0; j <= radius; ++j)  {",
+              "         for (int i = -radius; i <= 0; ++i)  {",
+              "             c = texture2D(texture, uv + vec2(i,j) * src_size).rgb;",
+              "             m3 += c;",
+              "             s3 += c * c;",
+              "         }",
+              "     }",
+
+
+              "     vec4 result = texture2D(texture, vUv);",
+              "     vec3 INPUT = texture2D(texture, vUv).rgb;",
+              "     vec4 alpha = texture2D(alpha, vUv);",
+              "     vec4 mask = texture2D(mask, vUv);",
+              "     float min_sigma2 = 1e+2;",
+              "     m0 /= n;",
+              "     s0 = abs(s0 / n - m0 * m0);",
+
+              "     float sigma2 = s0.r + s0.g + s0.b;",
+              "     if (sigma2 < min_sigma2) {",
+              "         min_sigma2 = sigma2;",
+                       // "  if(dot(alpha.rgb, vec3(1.0))/3.0 < 0.0001){",
+                       "    result.rgb = mix( INPUT, m0, dot(alpha.rgb, vec3(1.0))/3.0);",
+                       // "  }",
+              "    }",
+
+              "     m1 /= n;",
+              "     s1 = abs(s1 / n - m1 * m1);",
+
+              "     sigma2 = s1.r + s1.g + s1.b;",
+              "     if (sigma2 < min_sigma2) {",
+              "        min_sigma2 = sigma2;",
+                   // "  if(dot(alpha.rgb, vec3(1.0))/3.0 < 0.0001){",
+                   "    result.rgb = mix( INPUT, m1, dot(alpha.rgb, vec3(1.0))/3.0);",
+                   // "  }",
+              "     }",
+
+              "     m2 /= n;",
+              "     s2 = abs(s2 / n - m2 * m2);",
+
+              "     sigma2 = s2.r + s2.g + s2.b;",
+              "     if (sigma2 < min_sigma2) {",
+              "         min_sigma2 = sigma2;",
+                   // "  if(dot(alpha.rgb, vec3(1.0))/3.0 < 0.0001){",
+                   "    result.rgb = mix( INPUT, m2, dot(alpha.rgb, vec3(1.0))/3.0);",
+                   // "  }",
+              "     }",
+
+              "     m3 /= n;",
+              "     s3 = abs(s3 / n - m3 * m3);",
+
+              "     sigma2 = s3.r + s3.g + s3.b;",
+              "     if (sigma2 < min_sigma2) {",
+              "      min_sigma2 = sigma2;",
+
+                  // "  if(dot(alpha.rgb, vec3(1.0))/3.0 < 0.0001){",
+                  "    result.rgb = mix( INPUT, m3, dot(alpha.rgb, vec3(1.0))/3.0);",
+                   // "  }",
+
+              "     }",
+              "  ",
+
+              // "  vec4 res2 = vec4(overlay(screen( result.rgb,c2.rgb), result.rgb) , 1.0);",
+
+              // "  vec3 col3 = texture2D(texture, vUv + col2.xy * 0.05 ).xyz;",
+              // "  ",
+              "  gl_FragColor = result;",
+              // "  gl_FragColor = vec4(saturation(col3,res2.rgb ),1.0);",
+              "   ",
+              // "  // fragColor = res2;",
+              "   ",
+              " }",
+         
+         ].join("\n");
+ } 
+ var PSDMaskShader = function(){
+        this.uniforms = THREE.UniformsUtils.merge([
+            {
+                "texture"  : { type: "t", value: null },
+                "origTex"  : { type: "t", value: null },
+                "alpha"  : { type: "t", value: null },
+                "mouse"  : { type: "v2", value: null },
+                "mask"  : { type: "t", value: null },
+                "resolution"  : { type: "v2", value: null },
+                "time"  : { type: "f", value: null },
+                "r2"  : { type: "f", value: null }
+
+            }
+        ]);
+
+        this.vertexShader = [
+
+            "varying vec2 vUv;",
+            "void main() {",
+            "    vUv = uv;",
+            "    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+            "}"
+        
+        ].join("\n");
+        
+        this.fragmentShader = [
+            
+            "uniform sampler2D texture;",
+            "uniform sampler2D alpha;",
+            "uniform sampler2D mask;",
+            "uniform sampler2D origTex;",
+            "uniform vec2 resolution;",
+            "uniform vec2 mouse;",
+            "uniform float r2;",
+            "uniform float time;",
+            "varying vec2 vUv;",
+
+            "void main() {",
+
+                "vec3 col = texture2D(texture, vUv).rgb;",
+                "vec3 origCol = texture2D(origTex, vUv).rgb;",
+                "vec4 alpha = texture2D(alpha, vUv);",
+                "vec4 mask = texture2D(mask, vUv);",
+
+
+                
+                // "col2*=2.0;",
+                // "vec3 alpha = texture2D(alpha, vUv).rgb;",
+                // "   vec2 q = vUv;",
+                // "   vec2 p = -1.0 + 2.0*q;",
+                // "   p.x *= resolution.x/resolution.y;",
+                // "   vec2 m = mouse;",
+                // "   m.x *= resolution.x/resolution.y;",
+                // "   float r = sqrt( dot((p - m), (p - m)) );",
+                // "   float a = atan(p.y, p.x);",
+                // "   if(r < r2){",
+
+                // "if(dot(alpha.rgb, vec3(1.0))/3.0 < 0.00001){",
+                // "    float f = smoothstep(r2, r2 - 0.5, r);",
+                // "    col = mix( col, col2.rgb, f);",
+                // "   col = col;", 
+                // "    if((dot(alpha.rgb, vec3(1.0))/3.0 < 0.00001)){",
+                "       col = mix(origCol, col,  dot(alpha.rgb, vec3(1.0))/3.0);",
+                // "    }",
+
+                // "} else {",
+                // "   col = origCol;",
+                // "}",
+                "gl_FragColor = vec4(col,1.0);",
+                // "gl_FragColor = col;",
+            "}"
+
+
+        
+        ].join("\n");
+}
+var RevertShader = function(){
+        this.uniforms = THREE.UniformsUtils.merge([
+            {
+                "texture"  : { type: "t", value: null },
+                "origTex"  : { type: "t", value: null },
+                "alpha"  : { type: "t", value: null },
+                "mask"  : { type: "t", value: null },
+                "mouse"  : { type: "v2", value: null },
+                "resolution"  : { type: "v2", value: null },
+                "time"  : { type: "f", value: null },
+                "r2"  : { type: "f", value: null },
+                "seed"  : { type: "f", value: null }
+
+            }
+        ]);
+
+        this.vertexShader = [
+
+            "varying vec2 vUv;",
+            "void main() {",
+            "    vUv = uv;",
+            "    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+            "}"
+        
+        ].join("\n");
+        
+        this.fragmentShader = [
+            
+            "uniform sampler2D texture;",
+            "uniform sampler2D origTex;",
+            "uniform sampler2D mask;",
+            "uniform sampler2D alpha;",
+            "uniform vec2 resolution;",
+            "uniform vec2 mouse;",
+            "uniform float r2;",
+            "uniform float seed;",
+            "uniform float time;",
+            "varying vec2 vUv;",
+            "float rand(vec2 p)",
+            "{",
+            "    vec2 n = floor(p/2.0);",
+            "     return fract(cos(dot(n,vec2(48.233,39.645)))*375.42); ",
+            "}",
+            "float srand(vec2 p)",
+            "{",
+            "     vec2 f = floor(p);",
+            "    vec2 s = smoothstep(vec2(0.0),vec2(1.0),fract(p));",
+            "    ",
+            "    return mix(mix(rand(f),rand(f+vec2(1.0,0.0)),s.x),",
+            "           mix(rand(f+vec2(0.0,1.0)),rand(f+vec2(1.0,1.0)),s.x),s.y);",
+            "}",
+            "float noise(vec2 p)",
+            "{",
+            "     float total = srand(p/128.0)*0.5+srand(p/64.0)*0.35+srand(p/32.0)*0.1+srand(p/16.0)*0.05;",
+            "    return total;",
+            "}",
+
+
+                    // "    vec2 q = vUv;",
+                    // "    vec2 p = -1.0 + 2.0*q;",
+                    // "    p.x *= resolution.x/resolution.y;",
+                    // "    vec2 m = mouse;",
+                    // "    m.x *= resolution.x/resolution.y;",
+                    // "    float r = sqrt( dot((p - m), (p - m)) );",
+                    // "    float a = atan(p.y, p.x);",
+                    // "    vec3 col = texture2D(texture, vUv).rgb;",
+                    // "    if(r < r2){",
+                    // "        float f = smoothstep(r2, r2 - 0.5, r);",
+                    // "        col = mix( col, rgb, f);",
+                    // "    }",
+
+                   
+            "void main() {",
+
+                // "float t = rand(vec2(0.5));",
+                // "float t = seed;",
+                "float t = time;",
+                "vec2 warp = vec2(noise(gl_FragCoord.xy+t)+noise(gl_FragCoord.xy*0.5+t*3.5),",
+                "                 noise(gl_FragCoord.xy+128.0-t)+noise(gl_FragCoord.xy*0.6-t*2.5))*0.5-0.25;",
+                //"   vec2 uv = gl_FragCoord.xy / resolution.xy+warp;",
+                "vec2 mW = warp;",
+                "vec2 uv = vUv+mW*sin(t)*0.5;",
+                "vec4 look = texture2D(origTex,uv);",
+                "vec2 offs = vec2(look.y-look.x,look.w-look.z)*vec2(1.0*uv.x/10.0, 1.0*uv.y/10.0);",
+                "vec2 coord = offs+vUv;",
+                "vec4 repos = texture2D(origTex, coord);",
+
+                "vec3 col = texture2D(texture, vUv).rgb;",
+                "vec4 alpha = texture2D(alpha, vUv);",
+                "vec4 mask = texture2D(mask, vUv);",
+                // "vec4 col2 = texture2D(origTex, vUv);",
+                
+                // "col2*=2.0;",
+                // "vec3 col2 = texture2D(texture, vUv).rgb*vec3(2.0,2.0,2.0);",
+                "repos.rgb = mix(repos.rgb, col, 0.5);",
+                // "if(dot(alpha.rgb, vec3(1.0))/3.0 > 0.00001){",
+                // "    col *= vec3(1.0, 0.0, 0.0);   ",
+                // "    float f = smoothstep(r2, r2 - 0.5, r);",
+                // "    col = mix( col, col2, f);",
+                "   col = mix( col, repos.rgb, dot(alpha.rgb, vec3(1.0))/3.0);",
+                // "}",
+                "gl_FragColor = vec4(col,1.0);",
+            "}"
+
+
+        
+        ].join("\n");
+}
+var RgbShiftShader = function(){
+        this.uniforms = THREE.UniformsUtils.merge([
+            {
+                "texture"  : { type: "t", value: null },
+                "origTex"  : { type: "t", value: null },
+                "alpha"  : { type: "t", value: null },
+                "mouse"  : { type: "v2", value: null },
+                "mask"  : { type: "t", value: null },
+                "resolution"  : { type: "v2", value: null },
+                "time"  : { type: "f", value: null },
+                "r2"  : { type: "f", value: null }
+
+            }
+        ]);
+
+        this.vertexShader = [
+
+            "varying vec2 vUv;",
+            "void main() {",
+            "    vUv = uv;",
+            "    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+            "}"
+        
+        ].join("\n");
+        
+        this.fragmentShader = [
+            
+            "uniform sampler2D texture;",
+            "uniform sampler2D alpha;",
+            "uniform sampler2D mask;",
+            "uniform vec2 resolution;",
+            "uniform vec2 mouse;",
+            "uniform float r2;",
+            "uniform float time;",
+            "varying vec2 vUv;",
+
+            "void main() {",
+
+                "vec3 col = texture2D(texture, vUv).rgb;",
+                "vec4 alpha = texture2D(alpha, vUv);",
+
+                "float ChromaticAberration = 10.0 / 10.0 + 8.0;",
+                "vec2 uv = vUv;",
+
+                "vec2 texel = 1.0 / resolution.xy;",
+
+                "vec2 coords = (uv - 0.5) * 2.0;",
+                "float coordDot = dot (coords, coords);",
+
+                "vec2 precompute = ChromaticAberration * coordDot * coords;",
+                "vec2 uvR = uv - texel.xy * precompute;",
+                "vec2 uvB = uv + texel.xy * precompute;",
+
+                "vec4 color;",
+                "float distance = 0.01;",
+                "float speed = 1.5;",
+                "vec2 rCoord = vec2(uvR.x + cos(time*speed)*distance, uvR.y + sin(time*speed)*distance);",
+                "vec2 bCoord = vec2(uvB.x + sin(time*speed)*distance, uvB.y + cos(time*speed)*distance);",
+                "color.r = texture2D(texture, rCoord).r;",
+                "color.g = texture2D(texture, uv).g;",
+                "color.b = texture2D(texture, bCoord).b;",
+
+                "vec4 col2 = color;",
+                
+                // "col2*=2.0;",
+                // "vec3 alpha = texture2D(alpha, vUv).rgb;",
+                // "   vec2 q = vUv;",
+                // "   vec2 p = -1.0 + 2.0*q;",
+                // "   p.x *= resolution.x/resolution.y;",
+                // "   vec2 m = mouse;",
+                // "   m.x *= resolution.x/resolution.y;",
+                // "   float r = sqrt( dot((p - m), (p - m)) );",
+                // "   float a = atan(p.y, p.x);",
+                // "   if(r < r2){",
+                "    vec4 mask = texture2D(mask, vUv);",
+
+                "if(dot(mask.rgb, vec3(1.0))/3.0 < 0.0001){",
+                // "    float f = smoothstep(r2, r2 - 0.5, r);",
+                // "    col = mix( col, col2.rgb, f);",
+                "   col = mix( col, col2.rgb, dot(alpha.rgb, vec3(1.0))/3.0);",
+                "}",
+                "gl_FragColor = vec4(col,1.0);",
+                // "gl_FragColor = col;",
+            "}"
+
+
+        
+        ].join("\n");
+}
+var RgbShiftShader = function(){
+        this.uniforms = THREE.UniformsUtils.merge([
+            {
+                "texture"  : { type: "t", value: null },
+                "origTex"  : { type: "t", value: null },
+                "alpha"  : { type: "t", value: null },
+                "mouse"  : { type: "v2", value: null },
+                "mask"  : { type: "t", value: null },
+                "resolution"  : { type: "v2", value: null },
+                "time"  : { type: "f", value: null },
+                "r2"  : { type: "f", value: null }
+
+            }
+        ]);
+
+        this.vertexShader = [
+
+            "varying vec2 vUv;",
+            "void main() {",
+            "    vUv = uv;",
+            "    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+            "}"
+        
+        ].join("\n");
+        
+        this.fragmentShader = [
+            
+            "uniform sampler2D texture;",
+            "uniform sampler2D alpha;",
+            "uniform sampler2D mask;",
+            "uniform vec2 resolution;",
+            "uniform vec2 mouse;",
+            "uniform float r2;",
+            "uniform float time;",
+            "varying vec2 vUv;",
+
+            "void main() {",
+
+                "vec3 col = texture2D(texture, vUv).rgb;",
+                "vec4 alpha = texture2D(alpha, vUv);",
+
+                "float ChromaticAberration = 10.0 / 10.0 + 8.0;",
+                "vec2 uv = vUv;",
+
+                "vec2 texel = 1.0 / resolution.xy;",
+
+                "vec2 coords = (uv - 0.5) * 2.0;",
+                "float coordDot = dot (coords, coords);",
+
+                "vec2 precompute = ChromaticAberration * coordDot * coords;",
+                "vec2 uvR = uv - texel.xy * precompute;",
+                "vec2 uvB = uv + texel.xy * precompute;",
+
+                "vec4 color;",
+                "float distance = 0.01;",
+                "float speed = 1.5;",
+                "vec2 rCoord = vec2(uvR.x + cos(time*speed)*distance, uvR.y + sin(time*speed)*distance);",
+                "vec2 bCoord = vec2(uvB.x + sin(time*speed)*distance, uvB.y + cos(time*speed)*distance);",
+                "color.r = texture2D(texture, rCoord).r;",
+                "color.g = texture2D(texture, uv).g;",
+                "color.b = texture2D(texture, bCoord).b;",
+
+                "vec4 col2 = color;",
+                
+                // "col2*=2.0;",
+                // "vec3 alpha = texture2D(alpha, vUv).rgb;",
+                // "   vec2 q = vUv;",
+                // "   vec2 p = -1.0 + 2.0*q;",
+                // "   p.x *= resolution.x/resolution.y;",
+                // "   vec2 m = mouse;",
+                // "   m.x *= resolution.x/resolution.y;",
+                // "   float r = sqrt( dot((p - m), (p - m)) );",
+                // "   float a = atan(p.y, p.x);",
+                // "   if(r < r2){",
+                "    vec4 mask = texture2D(mask, vUv);",
+
+                // "if(dot(alpha.rgb, vec3(1.0))/3.0 < 0.0001){",
+                // "    float f = smoothstep(r2, r2 - 0.5, r);",
+                // "    col = mix( col, col2.rgb, f);",
+                "   col = mix( col, col2.rgb, dot(alpha.rgb, vec3(1.0))/3.0);",
+                // "}",
+                "gl_FragColor = vec4(col,1.0);",
+                // "gl_FragColor = col;",
+            "}"
+
+
+        
+        ].join("\n");
+}
+var WarpFlowShader = function(){
+        this.uniforms = THREE.UniformsUtils.merge( [
+
+            {
+                "texture"  : { type: "t", value: null },
+                "alpha"  : { type: "t", value: null },
+                "origTex"  : { type: "t", value: null },
+                "mask"  : { type: "t", value: null },
+                "mouse"  : { type: "v2", value: null },
+                "time"  : { type: "f", value: null },
+                "r2"  : { type: "f", value: null },
+                "resolution"  : { type: "v2", value: null },
+            }
+        ] ),
+
+        this.vertexShader = [
+            "varying vec2 vUv;",
+            "uniform float time;",
+            "void main() {",
+            "    vUv = uv;",
+            "    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+            "}"
+        ].join("\n"),
+
+        this.fragmentShader = [
+            "uniform vec2 resolution;",
+            "uniform float time;",
+            "uniform sampler2D texture;",
+            "uniform sampler2D origTex;",
+            "uniform sampler2D alpha;",
+            "uniform sampler2D mask;",
+            "varying vec2 vUv;",
+            "uniform vec2 mouse;",
+            "uniform float r2;",
+            "vec3 rgb2hsv(vec3 c)",
+            "{",
+            "    vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);",
+            "    vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));",
+            "    vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));",
+            "    ",
+            "    float d = q.x - min(q.w, q.y);",
+            "    float e = 1.0e-10;",
+            "    return vec3(abs(( (q.z + (q.w - q.y) / (6.0 * d + e))) ), d / (q.x + e), q.x);",
+            "}",
+
+            "vec3 hsv2rgb(vec3 c)",
+            "{",
+            "    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);",
+            "    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);",
+            "    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);",
+            "}",
+            "float rand(vec2 p)",
+            "{",
+            "    vec2 n = floor(p/2.0);",
+            "     return fract(cos(dot(n,vec2(48.233,39.645)))*375.42); ",
+            "}",
+            "float srand(vec2 p)",
+            "{",
+            "     vec2 f = floor(p);",
+            "    vec2 s = smoothstep(vec2(0.0),vec2(1.0),fract(p));",
+            "    ",
+            "    return mix(mix(rand(f),rand(f+vec2(1.0,0.0)),s.x),",
+            "           mix(rand(f+vec2(0.0,1.0)),rand(f+vec2(1.0,1.0)),s.x),s.y);",
+            "}",
+            "float noise(vec2 p)",
+            "{",
+            "     float total = srand(p/128.0)*0.5+srand(p/64.0)*0.35+srand(p/32.0)*0.1+srand(p/16.0)*0.05;",
+            "    return total;",
+            "}",
+            "vec3 hueGradient(float t) {",
+            "    vec3 p = abs(fract(t + vec3(1.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0);",
+            "   return (clamp(p - 1.0, 0.0, 1.0));",
+            "}",
+            "float square(float s) { return s * s; }",
+            "vec3 square(vec3 s) { return s * s; }",
+            "vec3 neonGradient(float t) {",
+            "   return clamp(vec3(t * 1.3 + 0.1, square(abs(0.43 - t) * 1.7), (1.0 - t) * 1.7), 0.0, 1.0);",
+            "}",
+            "vec3 heatmapGradient(float t) {",
+            "   return (pow(t, 1.5) * 0.8 + 0.2) * vec3(smoothstep(0.0, 0.35, t) + t * 0.5, smoothstep(0.5, 1.0, t), max(1.0 - t * 1.7, t * 7.0 - 6.0));",
+            "}",
+            "vec3 electricGradient(float t) {",
+            "    return clamp( vec3(t * 8.0 - 6.3, square(smoothstep(0.6, 0.9, t)), pow(t, 3.0) * 1.7), 0.0, 1.0);   ",
+            "}",
+
+            "void main()",
+            "{",
+            "    float t = time;",
+            "    vec2 warp = vec2(noise(gl_FragCoord.xy+t)+noise(gl_FragCoord.xy*0.5+t*3.5),",
+            "                     noise(gl_FragCoord.xy+128.0-t)+noise(gl_FragCoord.xy*0.6-t*2.5))*0.5-0.25;",
+            // "    vec2 uv = gl_FragCoord.xy / resolution.xy+warp;",
+            "    vec2 mW = warp*mouse;",
+            "    vec2 uv = vUv+mW*sin(time);",
+            "    vec4 look = texture2D(texture,uv);",
+            "    vec2 offs = vec2(look.y-look.x,look.w-look.z)*vec2(mouse.x*uv.x/10.0, mouse.y*uv.y/10.0);",
+            "    vec2 coord = offs+vUv;",
+            "    vec4 repos = texture2D(texture, coord);",
+
+            // "    gl_FragColor = repos;",
+            "  vec4 tex0 = repos;",
+            "  vec3 hsv = rgb2hsv(tex0.rgb);",
+            "  hsv.r += 0.01;",
+            "  //hsv.r = mod(hsv.r, 1.0);",
+            "   ",
+            "  hsv.g *= 1.001;",
+            // "  // hsv.g = mod(hsv.g, 1.0);",
+            "  vec3 rgb = hsv2rgb(hsv); ",
+            // "  vec3 rgb = electricGradient(dot(tex0.rgb, vec3(1.0))); ",
+            // "  vec3 rgb = electricGradient(hsv.r); ",
+
+            "    vec2 q = vUv;",
+            "    vec2 p = -1.0 + 2.0*q;",
+            "    p.x *= resolution.x/resolution.y;",
+            "    vec2 m = mouse;",
+            "    m.x *= resolution.x/resolution.y;",
+            "    float r = sqrt( dot((p - m), (p - m)) );",
+            "    float a = atan(p.y, p.x);",
+            "    vec3 col = texture2D(texture, vUv).rgb;",
+            "    vec4 mask = texture2D(mask, vUv);",
+            "    if(r < r2){",
+            "        float f = smoothstep(r2, r2 - 0.5, r);",
+            "        col = mix( col, rgb, f);",
+            "    }",
+
+            // "   vec4 alpha = texture2D(alpha, vUv);",
+            // "   vec3 col = texture2D(texture, vUv).rgb;",
+            // "   if(dot(mask.rgb, vec3(1.0))/3.0 > 0.1){",
+            // "       col = mix( col, rgb, dot(alpha.rgb, vec3(1.0))/3.0);",
+            // "       col = mix( col, rgb, dot(mask.rgb, vec3(1.0))/3.0);",
+            // "   }",
+
+            "gl_FragColor = vec4(col,1.0);",
+
+            // "    gl_FragColor = vec4(col,1.0);",
+            "}"
+        ].join("\n")
+}
