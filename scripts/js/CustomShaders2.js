@@ -2506,7 +2506,10 @@ var RevertShader = function(){
 
                    
             "void main() {",
-
+	            "vec3 col = texture2D(texture, vUv).rgb;",
+	            "vec4 alpha = texture2D(alpha, vUv);",
+	            "vec4 mask = texture2D(mask, vUv);",
+	            "vec4 col2 = texture2D(origTex, vUv);",
                 // "float t = rand(vec2(0.5));",
                 // "float t = seed;",
                 "float t = time;",
@@ -2518,32 +2521,38 @@ var RevertShader = function(){
                 "vec4 look = texture2D(origTex,uv);",
                 "vec2 offs = vec2(look.y-look.x,look.w-look.z)*vec2(1.0*uv.x/10.0, 1.0*uv.y/10.0);",
                 "vec2 coord = offs+vUv;",
-                "vec4 repos = texture2D(origTex, coord);",
+                // "vec4 repos = texture2D(origTex, coord);",
 
-                "vec3 col = texture2D(texture, vUv).rgb;",
-                "vec4 alpha = texture2D(alpha, vUv);",
-                "vec4 mask = texture2D(mask, vUv);",
-                "vec4 col2 = texture2D(origTex, vUv);",
+
                 
                 // "col2*=2.0;",
                 // "vec3 col2 = texture2D(texture, vUv).rgb*vec3(2.0,2.0,2.0);",
                 // "if(dot(alpha.rgb, vec3(1.0))/3.0 > 0.0001){",
-
-                "	repos.rgb = mix(repos.rgb, col, 0.25);",
+                // " repos.rgb = mix(repos.rgb, col2.rgb,dot(mask.rgb, vec3(1.0))/3.0);",
+                // "	repos.rgb = mix(repos.rgb, col, 0.25);",
                 // "} else {",
                 // "	repos.rgb = mix(repos.rgb, col, 0.0);",                
                 // "}",
                 // "    col *= vec3(1.0, 0.0, 0.0);   ",
                 // "    float f = smoothstep(r2, r2 - 0.5, r);",
                 // "    col = mix( col, col2, f);",
-                "   col = mix( col, repos.rgb, dot(alpha.rgb, vec3(1.0))/3.0);",
+                // "if(dot(alpha.rgb, vec3(1.0))/3.0 > 0.00000000001){",
+                // "}",
+                // "	col = mix(col, col2.rgb, dot(mask.rgb, vec3(1.0))/3.0);",
+                "vec3 origCol = texture2D(origTex, vUv).rgb;",
+                "vec3 inputCol = texture2D(texture, vUv).rgb;",
+                "vec3 warpCol = texture2D(origTex, coord).rgb;",
+                "vec3 mixCol = mix(inputCol, warpCol, 0.5);",
+                "vec3 mixCol2 = mix(inputCol, origCol, dot(mask.rgb, vec3(1.0))/3.0);",
+                // "vec3 final = mix( col, repos.rgb, dot(alpha.rgb, vec3(1.0))/3.0);",
+                "vec3 final = mix(mixCol2,  mixCol, dot(alpha.rgb, vec3(1.0))/3.0);",
                 // "if(dot(alpha.rgb, vec3(1.0))/3.0 > 0.99999){",
 
                 // "   col = col2.rgb;",
                 // "} else {",
 	            // "   col = mix( col2.rgb, col, dot(alpha.rgb, vec3(1.0))/3.0);",
                 // "}",
-                "gl_FragColor = vec4(col,1.0);",
+                "gl_FragColor = vec4(final,1.0);",
             "}"
 
 

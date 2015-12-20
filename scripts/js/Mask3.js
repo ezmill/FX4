@@ -108,9 +108,9 @@ function Mask() {
         // this.material.uniforms["mouse"].value = new THREE.Vector2(mouse.x, mouse.y);
         this.material.uniforms["time"].value = time;
         if (mouseDown) {
-            this.radius = 0.5;
+            // this.radius = 0.5;
         } else {
-            this.radius = 0.0;
+            // this.radius = 0.0;
         }
         // this.overlayTexture.needsUpdate = true;
         this.maskTex.needsUpdate = true;

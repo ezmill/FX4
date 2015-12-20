@@ -228,6 +228,9 @@ function blackbox(el, inputImage, origImage, size, cbs) {
                 var tex = THREE.ImageUtils.loadTexture(path + "mask2.png")
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
+                var revertTex = THREE.ImageUtils.loadTexture(path + "revert.png")
+                revertTex.minFilter = revertTex.magFilter = THREE.LinearFilter;
+                fbMaterial.setMask(revertTex)
             } else if (effect.name == "warp") {
                 var tex = THREE.ImageUtils.loadTexture(path + "mask3.png");
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
@@ -243,41 +246,6 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         }
     }
 
-    function handleAudio(name) {
-        switch (name) {
-            case "warp":
-                playAudio("assets/audio/WARP.mp3")
-                break;
-            case "revert":
-                playAudio("assets/audio/REVERT.mp3")
-                break;
-            case "rgb shift":
-                playAudio("assets/audio/RGB.mp3")
-                break;
-            case "oil paint":
-                playAudio("assets/audio/OIL PAINT 2.mp3")
-                break;
-            case "repos":
-                playAudio("assets/audio/REPOSITION.mp3")
-                break;
-            case "flow":
-                playAudio("assets/audio/FLOW.mp3")
-                break;
-            case "gradient":
-                playAudio("assets/audio/GRADIENT.mp3")
-                break;
-            case "warp flow":
-                playAudio("assets/audio/WARP FLOW.mp3")
-                break;
-            case "curves":
-                playAudio("assets/audio/CURVES.mp3")
-                break;
-            case "neon glow":
-                playAudio("assets/audio/NEON GLOW.mp3")
-                break;
-        }
-    }
-
     function animate() {
         id = requestAnimationFrame(animate);
         draw();
@@ -286,7 +254,14 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     function draw() {
         time += 0.01;
         if (mouseDown) {
-            r2 = 0.5;
+            if(effect.name == "gradient"){
+                r2 += 0.0075;
+                mask.radius += 0.0075;
+                console.log(mask.radius);
+            } else {
+                r2 = 0.5;
+                mask.radius = 0.5;
+            }
         }
         if (effect.useMask) {
             mask.update();
@@ -335,6 +310,22 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         el.removeChild(div)
 
         // Call the callback function, passing the new canvas content to it.
+        // if (window.innerWidth > imgEl.width * (window.innerHeight / imgEl.height)) {
+            // renderSize = new THREE.Vector2(window.innerWidth, imgEl.height * (window.innerWidth / imgEl.width));
+        // } else {
+            // renderSize = new THREE.Vector2(imgEl.width * (window.innerHeight / imgEl.height), window.innerHeight);
+        // }
+        renderer.setSize(renderSize.x, renderSize.y);
+        mask.resize();
+        fbMaterial.resize();
+        fbMaterial.setUniforms();
+        mask.update();
+        fbMaterial.setUniforms();
+        fbMaterial.update();
+        renderer.render(scene, camera);
+        fbMaterial.getNewFrame();
+        fbMaterial.swapBuffers();
+
         var base64 = renderer.domElement.toDataURL('image/jpeg');
 
         cancelAnimationFrame(id); // Stop the animation
@@ -422,6 +413,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     function onMouseUp() {
         mouseDown = false;
         r2 = 0;
+        mask.radius = 0;
         soundFX[effectIndex].fadeOut();
         createNewEffect();
 
@@ -449,6 +441,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     function onDocumentTouchEnd(event) {
         mouseDown = false;
         r2 = 0;
+        mask.radius = 0;
         createNewEffect();
     }
 
@@ -1128,9 +1121,9 @@ Below this comment are dependencies
             // this.material.uniforms["mouse"].value = new THREE.Vector2(mouse.x, mouse.y);
             this.material.uniforms["time"].value = time;
             if (mouseDown) {
-                this.radius = 0.5;
+                // this.radius = 0.5;
             } else {
-                this.radius = 0.0;
+                // this.radius = 0.0;
             }
             // this.overlayTexture.needsUpdate = true;
             this.maskTex.needsUpdate = true;
