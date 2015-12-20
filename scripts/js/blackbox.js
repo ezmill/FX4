@@ -78,9 +78,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     div.appendChild(icons);
     //to-do splice in BASE shader at first index and then remove after starting
     var infoCounter = 0;
-    var audio = new Audio(),
-        playing = false;
-
+    var soundFX = [];
     init();
 
     function init() {
@@ -108,10 +106,19 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         onWindowResize();
         animate();
     }
-
+    function createSoundEffects(effects){
+        var path = "assets/audio/"
+        var format = ".mp3";
+        for(var i = 0; i < effects.length; i++){
+            var src = path + effects[i] + format;
+            var sound = new SoundEffect(src, effects[i]);
+            soundFX.push(sound);
+        }
+    }
     function createEffect() {
         shuffle(effects);
         insertRevert(effects);
+        createSoundEffects(effects);
         if (texture) texture.dispose();
         if (origTex) origTex.dispose();
         // var blob = dataURItoBlob(base64);
@@ -130,7 +137,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         origTex.image = img;
         origTex.minFilter = origTex.magFilter = THREE.LinearFilter;
         // origTex = texture.clone();
-        effect = new Effect(effects[effectIndex]);
+        effect = new Effect("gradient");
         effect.init();
         if (effect.useMask) {
             mask = new Mask();
@@ -149,7 +156,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             var tex = THREE.ImageUtils.loadTexture(path + "mask1.png");
             tex.minFilter = tex.magFilter = THREE.LinearFilter;
             mask.setMask(tex);
-        } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos") {
+        } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert") {
             var tex = THREE.ImageUtils.loadTexture(path + "mask2.png")
             tex.minFilter = tex.magFilter = THREE.LinearFilter;
             mask.setMask(tex);
@@ -167,7 +174,6 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         origImg.onload = function() {
             origTex.needsUpdate = true;
         }
-        handleAudio(effect.name);
     }
 
     function createNewEffect() {
@@ -183,8 +189,10 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             useNewOriginal = true;
         } else if (effects[effectIndex] == "warp") {
             useNewOriginal = true;
-        } else {
+        } else if (effects[effectIndex] == "revert"){
             useNewOriginal = false;
+        } else {
+            useNewOriginal = false;            
         }
 
         var blob = dataURItoBlob(renderer.domElement.toDataURL('image/jpg'));
@@ -216,7 +224,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
                 var tex = THREE.ImageUtils.loadTexture(path + "mask1.png");
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
-            } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos") {
+            } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert") {
                 var tex = THREE.ImageUtils.loadTexture(path + "mask2.png")
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
@@ -233,12 +241,6 @@ function blackbox(el, inputImage, origImage, size, cbs) {
                 fbMaterial.setOriginalTex(origTex);
             }
         }
-        // handleAudio(effect.name);
-    }
-
-    function playAudio(src) {
-        audio.src = src;
-        audio.load();
     }
 
     function handleAudio(name) {
@@ -290,16 +292,8 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             mask.update();
             alpha.needsUpdate = true;
         }
-        if (playing) {
-            audio.play();
-            audio.volume += (1.0 - audio.volume) * 0.1;
-
-        } else {
-            audio.volume += (0.0 - audio.volume) * 0.25;
-            if (audio.volume < 0.1) {
-                audio.pause();
-                handleAudio(effect.name);
-            }
+        for(var i = 0; i < soundFX.length; i++){
+            soundFX[i].update();
         }
         fbMaterial.setUniforms();
         fbMaterial.update();
@@ -422,13 +416,13 @@ function blackbox(el, inputImage, origImage, size, cbs) {
 
     function onMouseDown() {
         mouseDown = true;
-        playing = true;
+        soundFX[effectIndex].fadeIn();
     }
 
     function onMouseUp() {
         mouseDown = false;
-        playing = false;
         r2 = 0;
+        soundFX[effectIndex].fadeOut();
         createNewEffect();
 
     }
@@ -916,7 +910,7 @@ Below this comment are dependencies
             var rgbShiftShader = new RgbShiftShader();
             var shaders = [
                 customShaders2.passShader,
-                customShaders.diffShader,
+                customShaders.diffShader2,
                 customShaders.passShader,
                 rgbShiftShader
             ]
@@ -964,10 +958,11 @@ Below this comment are dependencies
             var gradientShader = new GradientShader();
             var customShaders2 = new CustomShaders();
             var shaders = [
-                customShaders.blurShader,
-                customShaders.diffShader,
-                customShaders.blurShader,
-                gradientShader,
+                customShaders.passShader,
+                customShaders.diffShader2,
+                customShaders2.passShader,
+                gradientShader
+
             ]
             return shaders;
         }
@@ -990,7 +985,7 @@ Below this comment are dependencies
             var curvesShader = new CurvesShader(red, green, blue);
             var gradientShader = new GradientShader();
             var shaders = [
-                customShaders.reposShader,
+                customShaders.passShader,
                 customShaders.diffShader2,
                 customShaders.passShader,
                 curvesShader
