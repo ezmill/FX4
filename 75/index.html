@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<!-- <link rel="stylesheet" href="assets/css/index.css"> -->
+		<link rel="stylesheet" href="icons/pe-icon-7-stroke/css/pe-icon-7-stroke.css">
+		<style>
+			body {
+				color: #fff;
+				font-family:Monospace;
+				font-size:13px;
+				margin: 0px;
+				/*text-align:center;*/
+				/*overflow: hidden;*/
+			}
+		</style>
+	</head>
+	<body>
+		<div id="BB-container"></div>
+		<script src="scripts/js/three.min.js"></script>
+		<script src="scripts/js/SoundEffect.js"></script>
+		<script src="scripts/js/CustomShaders2.js"></script>
+		<script src="scripts/js/blackbox.js"></script>
+		<script>
+			var blackboxEl = document.getElementById('BB-container')
+			imgEl = new Image();
+			imgEl.onload = function(){
+				var canvas = document.createElement('canvas')
+				canvas.width = imgEl.width;
+				canvas.height = imgEl.height;
+				var ctx = canvas.getContext('2d')
+				ctx.drawImage(imgEl, 0, 0);
+				origImage = canvas.toDataURL();
+                blackbox(blackboxEl, origImage, origImage, {w: imgEl.width, h: imgEl.height}, {save: onCompleteBlackbox, info: null})
+			}
+			imgEl.src = "assets/textures/1/texture.jpg";
+
+			function onCompleteBlackbox (err, inputImage, origImage) {
+			    if (err) { console.error(err); return }
+			    var image = new Image();
+			    image.src = inputImage;
+			    image.onload = function(){
+				    document.body.appendChild(image);
+			    }
+				// blackbox(blackboxEl, inputImage, origImage, onCompleteBlackbox)
+			}
+		</script>
+	</body>
+</html>

@@ -99,6 +99,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         document.addEventListener('touchend', onDocumentTouchEnd, false);
         document.addEventListener('touchcancel', onDocumentTouchEnd, false);
         document.addEventListener('touchleave', onDocumentTouchEnd, false);
+        document.addEventListener('keydown', onKeyDown, false);
         window.addEventListener("resize", onWindowResize);
         infoButton.addEventListener("click", cbs.info);
         infoButton.addEventListener("touchstart", cbs.info);
@@ -137,7 +138,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         origTex.image = img;
         origTex.minFilter = origTex.magFilter = THREE.LinearFilter;
         // origTex = texture.clone();
-        effect = new Effect("gradient");
+        effect = new Effect(effects[effectIndex]);
         effect.init();
         if (effect.useMask) {
             mask = new Mask();
@@ -257,7 +258,6 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             if(effect.name == "gradient"){
                 r2 += 0.0075;
                 mask.radius += 0.0075;
-                console.log(mask.radius);
             } else {
                 r2 = 0.5;
                 mask.radius = 0.5;
@@ -302,6 +302,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         document.removeEventListener('touchend', onDocumentTouchEnd, false);
         document.removeEventListener('touchcancel', onDocumentTouchEnd, false);
         document.removeEventListener('touchleave', onDocumentTouchEnd, false);
+        document.removeEventListener('keydown', onKeyDown, false);
         window.removeEventListener("resize", onWindowResize);
         infoButton.removeEventListener("click", cbs.info);
         infoButton.removeEventListener("touchstart", cbs.info);
@@ -469,27 +470,27 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     }
 
     function onKeyDown(event) {
-        /* if(event.keyCode == "39"){
-        if(imgNum < 13){
-            imgNum++;
-        } else {
-            imgNum = 1;
+         if(event.keyCode == "39"){
+            if(imgNum < 13){
+                imgNum++;
+            } else {
+                imgNum = 1;
+            }
+            path = "assets/textures/" + imgNum + "/";
+            inputImage = path + "texture.jpg";
+            createEffect();
         }
-        path = "assets/textures/" + imgNum + "/";
-        inputImage = path + "texture.jpg";
-        createEffect();
-    }
-    if(event.keyCode == "37"){
-        if(imgNum == 1){
-            imgNum = 12;
-        } else {
-            imgNum--;
+        if(event.keyCode == "37"){
+            if(imgNum == 1){
+                imgNum = 12;
+            } else {
+                imgNum--;
+            }
+            path = "assets/textures/" + imgNum + "/";
+            inputImage = path + "texture.jpg";
+            createEffect();
         }
-        path = "assets/textures/" + imgNum + "/";
-        inputImage = path + "texture.jpg";
-        createEffect();
-    }
-    */
+    
     }
     /**
 
