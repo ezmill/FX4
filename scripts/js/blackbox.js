@@ -122,6 +122,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         shuffle(effects);
         insertRevert(effects);
         createSoundEffects(effects);
+        effectIndex = 0;
         if (texture) texture.dispose();
         if (origTex) origTex.dispose();
         // var blob = dataURItoBlob(base64);
@@ -418,11 +419,23 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     }
 
     function onMouseUp() {
-        mouseDown = false;
-        r2 = 0;
-        mask.radius = 0;
-        soundFX[effectIndex].fadeOut();
-        createNewEffect();
+        if(effect.name != "gradient"){
+            mouseDown = false;
+            r2 = 0;
+            mask.radius = 0;
+            soundFX[effectIndex].fadeOut();
+            createNewEffect();
+        } else {
+            document.removeEventListener("mousedown", onMouseDown);
+            window.setTimeout(function(){
+                document.addEventListener("mousedown", onMouseDown);
+                mouseDown = false;
+                r2 = 0;
+                mask.radius = 0;
+                soundFX[effectIndex].fadeOut();
+                createNewEffect();
+            }, 2000)
+        }
 
     }
 
