@@ -79,6 +79,8 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     //to-do splice in BASE shader at first index and then remove after starting
     var infoCounter = 0;
     var soundFX = [];
+    var backingTrack = new SoundEffect("assets/audio/backing.mp3");
+    backingTrack.fadeIn();
     init();
 
     function init() {
@@ -157,14 +159,17 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             var tex = THREE.ImageUtils.loadTexture(path + "mask1.png");
             tex.minFilter = tex.magFilter = THREE.LinearFilter;
             mask.setMask(tex);
-        } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert") {
+        } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp") {
             var tex = THREE.ImageUtils.loadTexture(path + "mask2.png")
             tex.minFilter = tex.magFilter = THREE.LinearFilter;
             mask.setMask(tex);
-        } else if (effect.name == "warp") {
-            var tex = THREE.ImageUtils.loadTexture(path + "mask3.png");
-            tex.minFilter = tex.magFilter = THREE.LinearFilter;
-            mask.setMask(tex);
+            var revertTex = THREE.ImageUtils.loadTexture(path + "revert.png")
+            revertTex.minFilter = revertTex.magFilter = THREE.LinearFilter;
+            fbMaterial.setMask(revertTex)
+        // } else if (effect.name == "warp") {
+        //     var tex = THREE.ImageUtils.loadTexture(path + "mask3.png");
+        //     tex.minFilter = tex.magFilter = THREE.LinearFilter;
+        //     mask.setMask(tex);
         } else {
             mask.setMask(false);
         }
@@ -225,17 +230,17 @@ function blackbox(el, inputImage, origImage, size, cbs) {
                 var tex = THREE.ImageUtils.loadTexture(path + "mask1.png");
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
-            } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert") {
+            } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp") {
                 var tex = THREE.ImageUtils.loadTexture(path + "mask2.png")
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
                 var revertTex = THREE.ImageUtils.loadTexture(path + "revert.png")
                 revertTex.minFilter = revertTex.magFilter = THREE.LinearFilter;
                 fbMaterial.setMask(revertTex)
-            } else if (effect.name == "warp") {
-                var tex = THREE.ImageUtils.loadTexture(path + "mask3.png");
-                tex.minFilter = tex.magFilter = THREE.LinearFilter;
-                mask.setMask(tex);
+            // } else if (effect.name == "warp") {
+            //     var tex = THREE.ImageUtils.loadTexture(path + "mask3.png");
+            //     tex.minFilter = tex.magFilter = THREE.LinearFilter;
+            //     mask.setMask(tex);
             } else {
                 mask.setMask(false);
             }
@@ -267,6 +272,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             mask.update();
             alpha.needsUpdate = true;
         }
+        backingTrack.update();
         for(var i = 0; i < soundFX.length; i++){
             soundFX[i].update();
         }
@@ -1104,7 +1110,7 @@ Below this comment are dependencies
             this.outputScene.add(this.maskMesh);
             this.maskMesh.position.z = 0;
 
-            this.alphaTex = THREE.ImageUtils.loadTexture(path + "mask1.png");
+            this.alphaTex = THREE.ImageUtils.loadTexture(path + "mask2.png");
             this.alphaTex.minFilter = this.alphaTex.magFilter = THREE.LinearFilter;
             this.overlayGeometry = new THREE.PlaneBufferGeometry(renderSize.x, renderSize.y);
             this.overlayMaterial = new THREE.MeshBasicMaterial({

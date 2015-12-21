@@ -225,17 +225,17 @@ function blackbox(el, inputImage, origImage, size, cbs) {
                 var tex = THREE.ImageUtils.loadTexture(path + "mask1.png");
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
-            } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert") {
+            } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp") {
                 var tex = THREE.ImageUtils.loadTexture(path + "mask2.png")
                 tex.minFilter = tex.magFilter = THREE.LinearFilter;
                 mask.setMask(tex);
                 var revertTex = THREE.ImageUtils.loadTexture(path + "revert.png")
                 revertTex.minFilter = revertTex.magFilter = THREE.LinearFilter;
                 fbMaterial.setMask(revertTex)
-            } else if (effect.name == "warp") {
-                var tex = THREE.ImageUtils.loadTexture(path + "mask3.png");
-                tex.minFilter = tex.magFilter = THREE.LinearFilter;
-                mask.setMask(tex);
+            // } else if (effect.name == "warp") {
+                // var tex = THREE.ImageUtils.loadTexture(path + "mask3.png");
+                // tex.minFilter = tex.magFilter = THREE.LinearFilter;
+                // mask.setMask(tex);
             } else {
                 mask.setMask(false);
             }
