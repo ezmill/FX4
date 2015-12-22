@@ -31,27 +31,11 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     var origTex, origImage;
     var w = size.w,
         h = size.h
-    // if (window.innerWidth > w * (window.innerHeight / h)) {
-        // renderSize = new THREE.Vector2(window.innerWidth, h * (window.innerWidth / w));
-    // } else {
-        // renderSize = new THREE.Vector2(w * (window.innerHeight / h), window.innerHeight);
-    // }
-    renderSize = new THREE.Vector2(window.innerWidth, window.innerHeight);
+    setRenderSize();
     var scene, camera, light, renderer, texture, fbMaterial, mask;
     var effectIndex = 0;
     var id;
-    var effects = ["warp",
-        "revert",
-        "rgb shift",
-        "oil paint",
-        "repos",
-        "flow",
-        "glitch",
-        "gradient",
-        "warp flow",
-        "curves",
-        "neon glow"
-    ]
+    var effects = ["warp", "revert", "rgb shift", "oil paint", "repos", "flow", "glitch", "gradient", "warp flow", "curves", "neon glow"];
     var loadedItems = 0;
     var mask1 = THREE.ImageUtils.loadTexture(path + "mask1.png", undefined, checkLoading);
     mask1.minFilter = mask1.magFilter = THREE.LinearFilter;
@@ -93,31 +77,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     var infoButton = document.createElement("div");
     var uploadButton = document.createElement("div");
     var icons = document.createElement("div");
-    icons.style["position"] = "fixed";
-    icons.style["top"] = 0;
-    icons.style["left"] = 0;
-    icons.style["right"] = 0;
-    icons.style["bottom"] = 0;
-    icons.style["width"] = window.innerWidth;
-    icons.style["height"] = window.innerHeight;
-    icons.style["font-size"] = 48;
-    uploadButton.style["position"] = infoButton.style["position"] = "absolute";
-    uploadButton.style["right"] = infoButton.style["right"] = 0;
-    uploadButton.style["margin"] = infoButton.style["margin"] = "20px";
-    uploadButton.style["cursor"] = infoButton.style["cursor"] = "pointer";
-    uploadButton.style["font-size"] = infoButton.style["font-size"] = "48px";
-    uploadButton.style["bottom"] = 0;
-    var infoIcon = document.createElement("i");
-    infoIcon.className = "pe-7s-info";
-    var uploadIcon = document.createElement("i");
-    uploadIcon.className = "pe-7s-upload";
-    infoButton.appendChild(infoIcon);
-    uploadButton.appendChild(uploadIcon);
-    icons.appendChild(infoButton);
-    icons.appendChild(uploadButton);
-    div.appendChild(icons);
-    //to-do splice in BASE shader at first index and then remove after starting
-    var infoCounter = 0;
+    addIcons();
     var soundFX = [];
     var backingTrack = new SoundEffect("assets/audio/backing.mp3");
     backingTrack.fadeIn();
@@ -126,8 +86,6 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     rendererStats.domElement.style.left  = '0px'
     rendererStats.domElement.style.bottom    = '0px'
     // document.body.appendChild( rendererStats.domElement )
-
-    // init();
 
     function init() {
         scene = new THREE.Scene();
@@ -148,27 +106,19 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         document.addEventListener('touchend', onDocumentTouchEnd, false);
         document.addEventListener('touchcancel', onDocumentTouchEnd, false);
         document.addEventListener('touchleave', onDocumentTouchEnd, false);
-        document.addEventListener('keydown', onKeyDown, false);
+        // document.addEventListener('keydown', onKeyDown, false);
         window.addEventListener("resize", onWindowResize);
         infoButton.addEventListener("click", cbs.info);
         infoButton.addEventListener("touchstart", cbs.info);
         infoButton.addEventListener("touchdown", cbs.info);
+      
         onWindowResize();
         div.appendChild(renderer.domElement)
-        // Put a "Save" button the the wrapper.
-        // button.type = 'button'
-        // button.innerHTML = 'Save'
         uploadButton.addEventListener('click', onClickButton)
-        // div.appendChild(button)
-
-        // Attach the wrapper and its content to the root element.
+        uploadButton.addEventListener('touchstart', onClickButton)
+        uploadButton.addEventListener('touchdown', onClickButton)
         el.appendChild(div)
 
-        // Render the input image data to the canvas.
-        var image = new Image()
-        image.src = renderer.domElement.toDataURL('image/jpeg');
-        // el.appendChild(image);
-        // This function is called on the "Save" button click.
         animate();
     }
     function createSoundEffects(effects){
@@ -207,14 +157,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         if (fbMaterial) fbMaterial.dispose();
         fbMaterial = new FeedbackMaterial(renderer, scene, camera, texture, effect.shaders);
         fbMaterial.init();
-        if (effect.name == "neon glow") {
-            mask.setMask(mask1);
-        } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp" || effect.name == "glitch") {
-            mask.setMask(mask2);
-            fbMaterial.setMask(revertTex)
-        } else {
-            mask.setMask(false);
-        }
+        setMask();
         fbMaterial.setOriginalTex(origTex);
     }
 
@@ -278,22 +221,23 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             fbMaterial.dispose();
             fbMaterial = new FeedbackMaterial(renderer, scene, camera, texture, effect.shaders);
             fbMaterial.init();
-            if (effect.name == "neon glow") {
-                mask.setMask(mask1);
-            } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp" || effect.name == "glitch") {
-                mask.setMask(mask2);
-                fbMaterial.setMask(revertTex)
-            } else {
-                mask.setMask(false);
-            }
+            setMask();
             if (useNewOriginal) {
                 fbMaterial.setOriginalTex(texture);
             } else {
                 fbMaterial.setOriginalTex(origTex);
             }
-        // }
     }
-
+    function setMask(){
+        if (effect.name == "neon glow") {
+            mask.setMask(mask1);
+        } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp" || effect.name == "glitch") {
+            mask.setMask(mask2);
+            fbMaterial.setMask(revertTex)
+        } else {
+            mask.setMask(false);
+        }
+    }
     function animate() {
         id = requestAnimationFrame(animate);
         draw();
@@ -344,21 +288,22 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         el.removeChild(div)
 
         // Call the callback function, passing the new canvas content to it.
-        // if (window.innerWidth > imgEl.width * (window.innerHeight / imgEl.height)) {
-            // renderSize = new THREE.Vector2(window.innerWidth, imgEl.height * (window.innerWidth / imgEl.width));
+        // if (window.innerWidth > h * (window.innerHeight / w)) {
+            // renderSize = new THREE.Vector2(window.innerWidth, w * (window.innerWidth / h));
         // } else {
-            // renderSize = new THREE.Vector2(imgEl.width * (window.innerHeight / imgEl.height), window.innerHeight);
+            // renderSize = new THREE.Vector2(h * (window.innerHeight / w), window.innerHeight);
         // }
-        renderer.setSize(renderSize.x, renderSize.y);
-        mask.resize();
-        fbMaterial.resize();
-        fbMaterial.setUniforms();
-        mask.update();
-        fbMaterial.setUniforms();
-        fbMaterial.update();
-        renderer.render(scene, camera);
-        fbMaterial.getNewFrame();
-        fbMaterial.swapBuffers();
+        // renderSize = new THREE.Vector2(w,h);
+        // renderer.setSize(renderSize.x, renderSize.y);
+        // mask.resize();
+        // fbMaterial.resize();
+        // fbMaterial.setUniforms();
+        // mask.resize();
+        // fbMaterial.setUniforms();
+        // fbMaterial.update();
+        // renderer.render(scene, camera);
+        // fbMaterial.getNewFrame();
+        // fbMaterial.swapBuffers();
 
         var base64 = renderer.domElement.toDataURL('image/jpeg');
 
@@ -366,25 +311,6 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         // scene = null;
         // camera = null;
         cbs.save(null, base64, origImage);
-    }
-
-    function dataURItoBlob(dataURI) {
-        var byteString;
-        if (dataURI.split(',')[0].indexOf('base64') >= 0)
-            byteString = atob(dataURI.split(',')[1]);
-        else
-            byteString = unescape(dataURI.split(',')[1]);
-
-        var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-
-        var ia = new Uint8Array(byteString.length);
-        for (var i = 0; i < byteString.length; i++) {
-            ia[i] = byteString.charCodeAt(i);
-        }
-
-        return new Blob([ia], {
-            type: mimeString
-        });
     }
 
     function shuffle(array) {
@@ -432,8 +358,6 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     }
 
     function onMouseMove(event) {
-        // mouse.x = ( event.pageX / renderSize.x ) * 2 - 1;
-        // mouse.y = - ( event.pageY / renderSize.y ) * 2 + 1;
         mouse.x = (event.pageX / renderSize.x) * 2 - 1;
         mouse.y = -(event.pageY / renderSize.y) * 2 + 1;
         mask.mouse = new THREE.Vector2(mouse.x, mouse.y);
@@ -493,18 +417,8 @@ function blackbox(el, inputImage, origImage, size, cbs) {
 
     function onWindowResize(event) {
 
-        // if (window.innerWidth > imgEl.width * (window.innerHeight / imgEl.height)) {
-            // renderSize = new THREE.Vector2(window.innerWidth, imgEl.height * (window.innerWidth / imgEl.width));
-        // } else {
-            // renderSize = new THREE.Vector2(imgEl.width * (window.innerHeight / imgEl.height), window.innerHeight);
-        // }
-        renderSize = new THREE.Vector2(window.innerWidth, window.innerHeight);
-
+        setRenderSize();
         renderer.setSize(renderSize.x, renderSize.y);
-        // camera.left = renderSize.x / - 2;
-        // camera.right = renderSize.x / 2;
-        // camera.top = renderSize.y / 2;
-        // camera.bottom = renderSize.y / - 2;
         mask.resize();
         fbMaterial.resize();
         fbMaterial.setUniforms();
@@ -517,27 +431,59 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     }
 
     function onKeyDown(event) {
-         if(event.keyCode == "39"){
-            if(imgNum < 13){
-                imgNum++;
-            } else {
-                imgNum = 1;
-            }
-            path = "assets/textures/" + imgNum + "/";
-            inputImage = path + "texture.jpg";
-            createEffect();
-        }
-        if(event.keyCode == "37"){
-            if(imgNum == 1){
-                imgNum = 12;
-            } else {
-                imgNum--;
-            }
-            path = "assets/textures/" + imgNum + "/";
-            inputImage = path + "texture.jpg";
-            createEffect();
-        }
+         // if(event.keyCode == "39"){
+            // if(imgNum < 13){
+                // imgNum++;
+            // } else {
+                // imgNum = 1;
+            // }
+            // path = "assets/textures/" + imgNum + "/";
+            // inputImage = path + "texture.jpg";
+            // createEffect();
+        // }
+        // if(event.keyCode == "37"){
+            // if(imgNum == 1){
+                // imgNum = 12;
+            // } else {
+                // imgNum--;
+            // }
+            // path = "assets/textures/" + imgNum + "/";
+            // inputImage = path + "texture.jpg";
+            // createEffect();
+        // }
     
+    }
+    function setRenderSize(){
+        if (window.innerWidth > w * (window.innerHeight / h)) {
+            renderSize = new THREE.Vector2(window.innerWidth, h * (window.innerWidth / w));
+        } else {
+            renderSize = new THREE.Vector2(w * (window.innerHeight / h), window.innerHeight);
+        }
+    }
+    function addIcons(){
+        icons.style["position"] = "fixed";
+        icons.style["top"] = 0;
+        icons.style["left"] = 0;
+        icons.style["right"] = 0;
+        icons.style["bottom"] = 0;
+        icons.style["width"] = window.innerWidth;
+        icons.style["height"] = window.innerHeight;
+        icons.style["font-size"] = 48;
+        uploadButton.style["position"] = infoButton.style["position"] = "absolute";
+        uploadButton.style["right"] = infoButton.style["right"] = 0;
+        uploadButton.style["margin"] = infoButton.style["margin"] = "20px";
+        uploadButton.style["cursor"] = infoButton.style["cursor"] = "pointer";
+        uploadButton.style["font-size"] = infoButton.style["font-size"] = "48px";
+        uploadButton.style["bottom"] = 0;
+        var infoIcon = document.createElement("i");
+        infoIcon.className = "pe-7s-info";
+        var uploadIcon = document.createElement("i");
+        uploadIcon.className = "pe-7s-upload";
+        infoButton.appendChild(infoIcon);
+        uploadButton.appendChild(uploadIcon);
+        icons.appendChild(infoButton);
+        icons.appendChild(uploadButton);
+        div.appendChild(icons);
     }
     /**
 
