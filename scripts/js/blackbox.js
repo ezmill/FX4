@@ -31,11 +31,12 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     var origTex, origImage;
     var w = size.w,
         h = size.h
-    if (window.innerWidth > w * (window.innerHeight / h)) {
-        renderSize = new THREE.Vector2(window.innerWidth, h * (window.innerWidth / w));
-    } else {
-        renderSize = new THREE.Vector2(w * (window.innerHeight / h), window.innerHeight);
-    }
+    // if (window.innerWidth > w * (window.innerHeight / h)) {
+        // renderSize = new THREE.Vector2(window.innerWidth, h * (window.innerWidth / w));
+    // } else {
+        // renderSize = new THREE.Vector2(w * (window.innerHeight / h), window.innerHeight);
+    // }
+    renderSize = new THREE.Vector2(window.innerWidth, window.innerHeight);
     var scene, camera, light, renderer, texture, fbMaterial, mask;
     var effectIndex = 0;
     var id;
@@ -492,11 +493,13 @@ function blackbox(el, inputImage, origImage, size, cbs) {
 
     function onWindowResize(event) {
 
-        if (window.innerWidth > imgEl.width * (window.innerHeight / imgEl.height)) {
-            renderSize = new THREE.Vector2(window.innerWidth, imgEl.height * (window.innerWidth / imgEl.width));
-        } else {
-            renderSize = new THREE.Vector2(imgEl.width * (window.innerHeight / imgEl.height), window.innerHeight);
-        }
+        // if (window.innerWidth > imgEl.width * (window.innerHeight / imgEl.height)) {
+            // renderSize = new THREE.Vector2(window.innerWidth, imgEl.height * (window.innerWidth / imgEl.width));
+        // } else {
+            // renderSize = new THREE.Vector2(imgEl.width * (window.innerHeight / imgEl.height), window.innerHeight);
+        // }
+        renderSize = new THREE.Vector2(window.innerWidth, window.innerHeight);
+
         renderer.setSize(renderSize.x, renderSize.y);
         // camera.left = renderSize.x / - 2;
         // camera.right = renderSize.x / 2;
