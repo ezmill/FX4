@@ -45,6 +45,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         "oil paint",
         "repos",
         "flow",
+        "glitch",
         "gradient",
         "warp flow",
         "curves",
@@ -91,7 +92,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     rendererStats.domElement.style.position   = 'absolute'
     rendererStats.domElement.style.left  = '0px'
     rendererStats.domElement.style.bottom    = '0px'
-    document.body.appendChild( rendererStats.domElement )
+    // document.body.appendChild( rendererStats.domElement )
 
     init();
 
@@ -168,7 +169,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         fbMaterial.init();
         if (effect.name == "neon glow") {
             mask.setMask(mask1);
-        } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp") {
+        } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp" || effect.name == "glitch") {
             mask.setMask(mask2);
             fbMaterial.setMask(revertTex)
         } else {
@@ -245,7 +246,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             fbMaterial.init();
             if (effect.name == "neon glow") {
                 mask.setMask(mask1);
-            } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp") {
+            } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp" || effect.name == "glitch") {
                 mask.setMask(mask2);
                 fbMaterial.setMask(revertTex)
             } else {
@@ -286,7 +287,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         renderer.render(scene, camera);
         fbMaterial.getNewFrame();
         fbMaterial.swapBuffers();
-        rendererStats.update(renderer);
+        // rendererStats.update(renderer);
     }
     div.appendChild(renderer.domElement)
     // Put a "Save" button the the wrapper.
@@ -865,6 +866,8 @@ Below this comment are dependencies
                     break;
                 case "glass":
                     this.shaders = this.glassEffect();
+                case "glitch":
+                    this.shaders = this.glitchEffect();
             }
         }
         this.warpEffect = function() {
@@ -999,6 +1002,18 @@ Below this comment are dependencies
                 customShaders.diffShader2,
                 customShaders.passShader,
                 glassShader
+            ]
+            return shaders;
+        }
+        this.glitchEffect = function() {
+            var customShaders = new CustomShaders();
+            var customShaders2 = new CustomShaders();
+            var glitchShader = new GlitchShader();
+            var shaders = [
+                customShaders2.passShader,
+                customShaders.diffShader2,
+                customShaders.passShader,
+                glitchShader
             ]
             return shaders;
         }
