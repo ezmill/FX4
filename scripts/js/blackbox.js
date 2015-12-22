@@ -21,6 +21,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     div.style.height = "100vh";
     div.style.width = "100vw";
     var marginLeft = 1000;
+    var useMargin = false;
     var renderSize;
     var imgNum = 1;
     var path = "assets/textures/" + imgNum + "/";
@@ -358,8 +359,13 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     }
 
     function onMouseMove(event) {
-        mouse.x = (event.pageX / renderSize.x) * 2 - 1;
+        if(useMargin){
+            mouse.x = ((event.pageX - (window.innerWidth - marginLeft) ) / renderSize.x) * 2 - 1;
+        } else {
+            mouse.x = (event.pageX / renderSize.x) * 2 - 1;            
+        }
         mouse.y = -(event.pageY / renderSize.y) * 2 + 1;
+        console.log(mouse.x);
         mask.mouse = new THREE.Vector2(mouse.x, mouse.y);
     }
 
@@ -422,12 +428,13 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         mask.resize();
         fbMaterial.resize();
         fbMaterial.setUniforms();
-        // if(marginLeft > window.innerWidth){
-        // console.log(window.innerWidth - marginLeft);
-        // renderer.domElement.style["margin-left"] = window.innerWidth - marginLeft + "px";
-        // } else {
-        // renderer.domElement.style["margin-left"] = 0;
-        // }
+        if(marginLeft > window.innerWidth){
+        useMargin = true;
+        renderer.domElement.style["margin-left"] = window.innerWidth - marginLeft + "px";
+        } else {
+        useMargin = false;
+        renderer.domElement.style["margin-left"] = 0;
+        }
     }
 
     function onKeyDown(event) {
