@@ -51,12 +51,44 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         "curves",
         "neon glow"
     ]
-    var mask1 = THREE.ImageUtils.loadTexture(path + "mask1.png");
+    var loadedItems = 0;
+    var mask1 = THREE.ImageUtils.loadTexture(path + "mask1.png", undefined, checkLoading);
     mask1.minFilter = mask1.magFilter = THREE.LinearFilter;
-    var mask2 = THREE.ImageUtils.loadTexture(path + "mask2.png");
+    var mask2 = THREE.ImageUtils.loadTexture(path + "mask2.png", undefined, checkLoading);
     mask2.minFilter = mask2.magFilter = THREE.LinearFilter;
-    var revertTex = THREE.ImageUtils.loadTexture(path + "revert.png");
+    var revertTex = THREE.ImageUtils.loadTexture(path + "revert.png", undefined, checkLoading);
     revertTex.minFilter = revertTex.magFilter = THREE.LinearFilter;
+    var white = THREE.ImageUtils.loadTexture("assets/textures/white.jpg", undefined, checkLoading);
+    white.minFilter = white.magFilter = THREE.LinearFilter;
+    var black = THREE.ImageUtils.loadTexture("assets/textures/black.jpg", undefined, checkLoading);
+    black.minFilter = black.magFilter = THREE.LinearFilter;
+    if (texture) texture.dispose();
+    if (origTex) origTex.dispose();
+    var img = new Image();
+    img.src = inputImage;
+    var origImg = new Image();
+    origImg.src = origImage;
+    texture = new THREE.Texture();
+    texture.image = img;
+    texture.minFilter = texture.magFilter = THREE.LinearFilter;
+    origTex = new THREE.Texture();
+    origTex.image = img;
+    origTex.minFilter = origTex.magFilter = THREE.LinearFilter;
+    img.onload = function() {
+        checkLoading();
+        texture.needsUpdate = true;
+    }
+    origImg.onload = function() {
+        checkLoading();
+        origTex.needsUpdate = true;
+    }
+    function checkLoading() {
+        ++loadedItems;
+        console.log(loadedItems);
+        if (loadedItems >= 7) {
+          init();
+        }
+    }
     var infoButton = document.createElement("div");
     var uploadButton = document.createElement("div");
     var icons = document.createElement("div");
@@ -94,7 +126,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     rendererStats.domElement.style.bottom    = '0px'
     // document.body.appendChild( rendererStats.domElement )
 
-    init();
+    // init();
 
     function init() {
         scene = new THREE.Scene();
@@ -121,6 +153,21 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         infoButton.addEventListener("touchstart", cbs.info);
         infoButton.addEventListener("touchdown", cbs.info);
         onWindowResize();
+        div.appendChild(renderer.domElement)
+        // Put a "Save" button the the wrapper.
+        // button.type = 'button'
+        // button.innerHTML = 'Save'
+        uploadButton.addEventListener('click', onClickButton)
+        // div.appendChild(button)
+
+        // Attach the wrapper and its content to the root element.
+        el.appendChild(div)
+
+        // Render the input image data to the canvas.
+        var image = new Image()
+        image.src = renderer.domElement.toDataURL('image/jpeg');
+        // el.appendChild(image);
+        // This function is called on the "Save" button click.
         animate();
     }
     function createSoundEffects(effects){
@@ -137,23 +184,15 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         insertRevert(effects);
         createSoundEffects(effects);
         effectIndex = 0;
-        if (texture) texture.dispose();
-        if (origTex) origTex.dispose();
+        
         // var blob = dataURItoBlob(base64);
         // var file = window.URL.createObjectURL(blob);
-        var img = new Image();
-        img.src = inputImage;
-        var origImg = new Image();
-        origImg.src = origImage;
+        
         // console.log(img);
         // image.src = base64;
-        texture = new THREE.Texture();
-        texture.image = img;
-        texture.minFilter = texture.magFilter = THREE.LinearFilter;
-        origTex = new THREE.Texture();
+        
         // origTex = THREE.ImageUtils.loadTexture("assets/textures/newtest.jpg");
-        origTex.image = img;
-        origTex.minFilter = origTex.magFilter = THREE.LinearFilter;
+        
         // origTex = texture.clone();
         effect = new Effect(effects[effectIndex]);
         effect.init();
@@ -176,12 +215,6 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             mask.setMask(false);
         }
         fbMaterial.setOriginalTex(origTex);
-        img.onload = function() {
-            texture.needsUpdate = true;
-        }
-        origImg.onload = function() {
-            origTex.needsUpdate = true;
-        }
     }
 
     function createNewEffect() {
@@ -289,21 +322,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         fbMaterial.swapBuffers();
         // rendererStats.update(renderer);
     }
-    div.appendChild(renderer.domElement)
-    // Put a "Save" button the the wrapper.
-    // button.type = 'button'
-    // button.innerHTML = 'Save'
-    uploadButton.addEventListener('click', onClickButton)
-    // div.appendChild(button)
-
-    // Attach the wrapper and its content to the root element.
-    el.appendChild(div)
-
-    // Render the input image data to the canvas.
-    var image = new Image()
-    image.src = renderer.domElement.toDataURL('image/jpeg');
-    // el.appendChild(image);
-    // This function is called on the "Save" button click.
+    
     function onClickButton() {
         // Remove the button's event listener.
         uploadButton.removeEventListener('click', onClickButton)
@@ -1073,12 +1092,8 @@ Below this comment are dependencies
                 transparent: true
             });
             this.material.uniforms["resolution"].value = new THREE.Vector2(renderSize.x, renderSize.y);
-            this.material.uniforms["white"].value = THREE.ImageUtils.loadTexture("assets/textures/white.jpg");
-            this.material.uniforms["white"].value.minFilter = THREE.LinearFilter;
-            this.material.uniforms["white"].value.magFilter = THREE.LinearFilter;
-            this.material.uniforms["black"].value = THREE.ImageUtils.loadTexture("assets/textures/black.jpg");
-            this.material.uniforms["black"].value.minFilter = THREE.LinearFilter;
-            this.material.uniforms["black"].value.magFilter = THREE.LinearFilter;
+            this.material.uniforms["white"].value = white;
+            this.material.uniforms["black"].value = black;
             this.mesh = new THREE.Mesh(this.geometry, this.material);
             this.scene.add(this.mesh);
             this.mesh.position.z = 0;
@@ -1111,7 +1126,7 @@ Below this comment are dependencies
             // this.outputScene.add(this.maskMesh);
             // this.maskMesh.position.z = 0;
 
-            this.alphaTex = THREE.ImageUtils.loadTexture(path + "mask2.png");
+            this.alphaTex = mask2;
             this.alphaTex.minFilter = this.alphaTex.magFilter = THREE.LinearFilter;
             this.overlayGeometry = new THREE.PlaneBufferGeometry(renderSize.x, renderSize.y);
             this.overlayMaterial = new THREE.MeshBasicMaterial({
