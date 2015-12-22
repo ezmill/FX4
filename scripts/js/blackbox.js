@@ -50,6 +50,12 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         "curves",
         "neon glow"
     ]
+    var mask1 = THREE.ImageUtils.loadTexture(path + "mask1.png");
+    mask1.minFilter = mask1.magFilter = THREE.LinearFilter;
+    var mask2 = THREE.ImageUtils.loadTexture(path + "mask2.png");
+    mask2.minFilter = mask2.magFilter = THREE.LinearFilter;
+    var revertTex = THREE.ImageUtils.loadTexture(path + "revert.png");
+    revertTex.minFilter = revertTex.magFilter = THREE.LinearFilter;
     var infoButton = document.createElement("div");
     var uploadButton = document.createElement("div");
     var icons = document.createElement("div");
@@ -81,6 +87,12 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     var soundFX = [];
     var backingTrack = new SoundEffect("assets/audio/backing.mp3");
     backingTrack.fadeIn();
+    var rendererStats  = new THREEx.RendererStats()
+    rendererStats.domElement.style.position   = 'absolute'
+    rendererStats.domElement.style.left  = '0px'
+    rendererStats.domElement.style.bottom    = '0px'
+    document.body.appendChild( rendererStats.domElement )
+
     init();
 
     function init() {
@@ -93,6 +105,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         renderer.setSize(renderSize.x, renderSize.y);
         renderer.setClearColor(0xffffff, 1.0);
         createEffect();
+
         document.addEventListener("mousemove", onMouseMove);
         document.addEventListener("mousedown", onMouseDown);
         document.addEventListener("mouseup", onMouseUp);
@@ -143,34 +156,21 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         // origTex = texture.clone();
         effect = new Effect(effects[effectIndex]);
         effect.init();
-        if (effect.useMask) {
-            mask = new Mask();
-            mask.init();
-            mask.update();
-            alpha = new THREE.Texture(mask.outputRenderer.domElement);
-            alpha.minFilter = alpha.magFilter = THREE.LinearFilter;
-            alpha.needsUpdate = true;
-        } else {
-            alpha = null;
-        }
+        mask = new Mask();
+        mask.init();
+        mask.update();
+        alpha = new THREE.Texture(mask.renderer.domElement);
+        alpha.minFilter = alpha.magFilter = THREE.LinearFilter;
+        alpha.needsUpdate = true;
+
         if (fbMaterial) fbMaterial.dispose();
         fbMaterial = new FeedbackMaterial(renderer, scene, camera, texture, effect.shaders);
         fbMaterial.init();
         if (effect.name == "neon glow") {
-            var tex = THREE.ImageUtils.loadTexture(path + "mask1.png");
-            tex.minFilter = tex.magFilter = THREE.LinearFilter;
-            mask.setMask(tex);
+            mask.setMask(mask1);
         } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp") {
-            var tex = THREE.ImageUtils.loadTexture(path + "mask2.png")
-            tex.minFilter = tex.magFilter = THREE.LinearFilter;
-            mask.setMask(tex);
-            var revertTex = THREE.ImageUtils.loadTexture(path + "revert.png")
-            revertTex.minFilter = revertTex.magFilter = THREE.LinearFilter;
+            mask.setMask(mask2);
             fbMaterial.setMask(revertTex)
-        // } else if (effect.name == "warp") {
-        //     var tex = THREE.ImageUtils.loadTexture(path + "mask3.png");
-        //     tex.minFilter = tex.magFilter = THREE.LinearFilter;
-        //     mask.setMask(tex);
         } else {
             mask.setMask(false);
         }
@@ -213,7 +213,8 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             fbMaterial.getNewFrame();
             fbMaterial.swapBuffers();
             texture.dispose();
-            texture = new THREE.Texture(renderer.domElement);
+            texture.image = renderer.domElement;
+            // texture = new THREE.Texture(renderer.domElement);
             texture.needsUpdate = true;
             texture.minFilter = texture.magFilter = THREE.LinearFilter;
             // fbMaterial.setUniforms();
@@ -222,37 +223,31 @@ function blackbox(el, inputImage, origImage, size, cbs) {
 
             effect = new Effect(effects[effectIndex]);
             effect.init();
-            if (effect.useMask) {
                 // mask = new Mask();
                 // mask.init();
                 // mask.update();
+                // mask.renderer.autoClear = true;
+                // mask.renderer.clearDepth(0x000000);
+                mask.renderer.clearDepth();
+                mask.renderer.clearTarget(mask.renderTarget1,0x000000);
+                mask.renderer.clearTarget(mask.renderTarget2,0x000000);
                 mask.renderer.clear();
-                mask.outputRenderer.clear();
+                // mask.update()
+                // mask.renderer.autoClear = false;
+                // mask.outputRenderer.clear();
                 // alpha.dipose();
-                alpha = new THREE.Texture(mask.outputRenderer.domElement);
-                alpha.minFilter = alpha.magFilter = THREE.LinearFilter;
-                alpha.needsUpdate = true;
-            } else {
-                alpha = null;
-            }
+                // alpha = new THREE.Texture(mask.renderer.domElement);
+                // alpha.minFilter = alpha.magFilter = THREE.LinearFilter;
+                // alpha.needsUpdate = true;
+
             fbMaterial.dispose();
             fbMaterial = new FeedbackMaterial(renderer, scene, camera, texture, effect.shaders);
             fbMaterial.init();
             if (effect.name == "neon glow") {
-                var tex = THREE.ImageUtils.loadTexture(path + "mask1.png");
-                tex.minFilter = tex.magFilter = THREE.LinearFilter;
-                mask.setMask(tex);
+                mask.setMask(mask1);
             } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp") {
-                var tex = THREE.ImageUtils.loadTexture(path + "mask2.png")
-                tex.minFilter = tex.magFilter = THREE.LinearFilter;
-                mask.setMask(tex);
-                var revertTex = THREE.ImageUtils.loadTexture(path + "revert.png")
-                revertTex.minFilter = revertTex.magFilter = THREE.LinearFilter;
+                mask.setMask(mask2);
                 fbMaterial.setMask(revertTex)
-            // } else if (effect.name == "warp") {
-            //     var tex = THREE.ImageUtils.loadTexture(path + "mask3.png");
-            //     tex.minFilter = tex.magFilter = THREE.LinearFilter;
-            //     mask.setMask(tex);
             } else {
                 mask.setMask(false);
             }
@@ -280,10 +275,8 @@ function blackbox(el, inputImage, origImage, size, cbs) {
                 mask.radius = 0.5;
             }
         }
-        if (effect.useMask) {
-            mask.update();
-            alpha.needsUpdate = true;
-        }
+        mask.update();
+        alpha.needsUpdate = true;
         backingTrack.update();
         for(var i = 0; i < soundFX.length; i++){
             soundFX[i].update();
@@ -293,6 +286,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         renderer.render(scene, camera);
         fbMaterial.getNewFrame();
         fbMaterial.swapBuffers();
+        rendererStats.update(renderer);
     }
     div.appendChild(renderer.domElement)
     // Put a "Save" button the the wrapper.
@@ -439,12 +433,12 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         } else {
             document.removeEventListener("mousedown", onMouseDown);
             window.setTimeout(function(){
-                document.addEventListener("mousedown", onMouseDown);
                 mouseDown = false;
                 r2 = 0;
                 mask.radius = 0;
                 soundFX[effectIndex].fadeOut();
                 createNewEffect();
+                document.addEventListener("mousedown", onMouseDown);
             }, 2000)
         }
 
@@ -835,69 +829,42 @@ Below this comment are dependencies
             switch (this.name) {
                 case "warp":
                     this.shaders = this.warpEffect();
-                    this.useMask = true;
                     break;
                 case "revert":
                     seed = Math.random() * 2 - 1;
                     this.shaders = this.revertEffect();
-                    this.useMask = true;
                     break;
                 case "rgb shift":
                     this.shaders = this.rgbShiftEffect();
-                    this.useMask = true;
                     break;
                 case "oil paint":
                     this.shaders = this.oilPaintEffect();
-                    this.useMask = true;
                     break;
                 case "repos":
                     this.shaders = this.reposEffect();
-                    this.useMask = true;
                     break;
                 case "flow":
                     this.shaders = this.flowEffect();
-                    this.useMask = true;
                     break;
                 case "gradient":
                     this.shaders = this.gradientEffect();
-                    this.useMask = true;
                     break;
                 case "warp flow":
                     this.shaders = this.warpFlowEffect();
-                    this.useMask = true;
                     break;
                 case "curves":
-                    // var curves = [[], [], []];
-                    // for(var i = 0; i < 3; i++){
-                    //  for(var j = 0; j < (Math.floor(Math.random()) + 2); j++){
-                    //      // for(var k = 0; k < 2; k++){
-                    //          // curves[i][j].push(Math.random());                            
-                    //          curves[i][j] = [Math.random(), Math.random()];                      
-                    //      // }
-                    //  }
-                    //  console.log(curves[i]);
-                    // }
                     var curveNum = Math.floor(Math.random() * this.curves.length)
                     this.shaders = this.curvesEffect(
                         this.curves[curveNum][0],
                         this.curves[curveNum][1],
                         this.curves[curveNum][2]
-                        // [[0, 0], [0.25, 0.2], [0.6, 0.7], [1, 1]],
-                        // [[0, 0], [1, 1]],
-                        // [[0, 0.19], [0.18, 0.47], [0.85, 0.8], [1, 1]]
-                        // curves[0],
-                        // curves[1],
-                        // curves[2]
                     );
-                    this.useMask = true;
                     break;
                 case "neon glow":
                     this.shaders = this.neonGlowEffect();
-                    this.useMask = true;
                     break;
                 case "glass":
                     this.shaders = this.glassEffect();
-                    this.useMask = true;
             }
         }
         this.warpEffect = function() {
@@ -916,16 +883,11 @@ Below this comment are dependencies
             var revertShader = new RevertShader();
             var denoiseShader = new DenoiseShader();
             var shaders = [
-                    // blendShader,
                     customShaders.passShader,
                     customShaders.diffShader2,
                     customShaders2.passShader,
                     revertShader
-
-
                 ]
-                // this.blendId = 15;
-                // this.blendId = 4;
             return shaders;
         }
         this.rgbShiftEffect = function() {
@@ -1064,7 +1026,7 @@ Below this comment are dependencies
             });
             this.renderer.setSize(renderSize.x, renderSize.y);
             this.renderer.setClearColor(0x000000, 1.0);
-            // this.renderer.autoClear = false;
+            this.renderer.autoClear = false;
 
 
             // 
@@ -1112,27 +1074,27 @@ Below this comment are dependencies
             this.renderTarget2 = new THREE.WebGLRenderTarget(renderSize.x, renderSize.y);
             this.renderTarget2.minFilter = this.renderTarget2.magFilter = THREE.LinearFilter;
 
-            this.maskTex = new THREE.Texture(this.renderer.domElement);
-            this.maskTex.minFilter = this.maskTex.magFilter = THREE.LinearFilter;
-            this.maskTex.needsUpdate = true;
+            // this.maskTex = new THREE.Texture(this.renderer.domElement);
+            // this.maskTex.minFilter = this.maskTex.magFilter = THREE.LinearFilter;
+            // this.maskTex.needsUpdate = true;
 
             this.outputScene = new THREE.Scene();
             this.outputCamera = new THREE.OrthographicCamera(renderSize.x / -2, renderSize.x / 2, renderSize.y / 2, renderSize.y / -2, -10000, 10000);
             this.outputCamera.position.set(0, 0, 0);
-            this.outputRenderer = new THREE.WebGLRenderer({
-                preserveDrawingBuffer: true
-            });
-            this.outputRenderer.setSize(renderSize.x, renderSize.y);
-            this.outputRenderer.setClearColor(0xffffff, 1.0);
+            // this.outputRenderer = new THREE.WebGLRenderer({
+                // preserveDrawingBuffer: true
+            // });
+            // this.outputRenderer.setSize(renderSize.x, renderSize.y);
+            // this.outputRenderer.setClearColor(0xffffff, 1.0);
 
-            this.maskGeometry = new THREE.PlaneBufferGeometry(renderSize.x, renderSize.y);
-            this.maskMaterial = new THREE.MeshBasicMaterial({
-                map: this.maskTex,
-                transparent: true
-            })
-            this.maskMesh = new THREE.Mesh(this.maskGeometry, this.maskMaterial);
-            this.outputScene.add(this.maskMesh);
-            this.maskMesh.position.z = 0;
+            // this.maskGeometry = new THREE.PlaneBufferGeometry(renderSize.x, renderSize.y);
+            // this.maskMaterial = new THREE.MeshBasicMaterial({
+                // map: this.maskTex,
+                // transparent: true
+            // })
+            // this.maskMesh = new THREE.Mesh(this.maskGeometry, this.maskMaterial);
+            // this.outputScene.add(this.maskMesh);
+            // this.maskMesh.position.z = 0;
 
             this.alphaTex = THREE.ImageUtils.loadTexture(path + "mask2.png");
             this.alphaTex.minFilter = this.alphaTex.magFilter = THREE.LinearFilter;
@@ -1157,12 +1119,14 @@ Below this comment are dependencies
                 // this.radius = 0.0;
             }
             // this.overlayTexture.needsUpdate = true;
-            this.maskTex.needsUpdate = true;
-
+            // this.maskTex.needsUpdate = true;
+            this.renderer.clear();
             this.renderer.render(this.scene, this.camera);
             this.renderer.render(this.scene, this.camera, this.renderTarget1);
             // this.oRenderer.render(this.oScene, this.oCamera, this.oRenderTarget);
-            this.outputRenderer.render(this.outputScene, this.outputCamera);
+            this.renderer.clearDepth();
+
+            this.renderer.render(this.outputScene, this.outputCamera);
 
             // this.overlayMesh.material.map.value = this.alphaTex;
             // this.alphaTex.needsUpdate = true;
@@ -1191,8 +1155,8 @@ Below this comment are dependencies
             this.renderer.setSize(renderSize.x, renderSize.y);
             this.renderTarget1.setSize(renderSize.x, renderSize.y);
             this.renderTarget2.setSize(renderSize.x, renderSize.y);
-            this.renderer.setSize(renderSize.x, renderSize.y);
-            this.outputRenderer.setSize(renderSize.x, renderSize.y);
+            // this.renderer.setSize(renderSize.x, renderSize.y);
+            // this.outputRenderer.setSize(renderSize.x, renderSize.y);
             this.camera.left = this.outputCamera.left = renderSize.x / -2;
             this.camera.right = this.outputCamera.right = renderSize.x / 2;
             this.camera.top = this.outputCamera.top = renderSize.y / 2;

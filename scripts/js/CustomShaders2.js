@@ -745,7 +745,7 @@ var CustomShaders = function(){
 	            "mouse"  : { type: "v2", value: null },
 	            "resolution"  : { type: "v2", value: null },
 	            "texture2"  : { type: "t", value: null },
-	            "color"  : { type: "c", value: new THREE.Color('#'+Math.floor(Math.random()*16777215).toString(16)) }
+	            "color"  : { type: "c", value: null }
 	        }
 	    ] ),
 
@@ -1519,12 +1519,16 @@ var GradientShader = function(){
             "{",
 			"	vec2 uv = vUv;",
 			// "	vec4 color = mix(mix(vec4(0.5+0.5*cos(time), 1.0 - uv.yx,0.5), texture2D(texture, vUv), 0.5), texture2D(texture, vUv), (0.5 + 0.5*sin((-sin(time) + uv.x*sin(time)*2.0)*(-1.0 + uv.y*2.0)*5.0)));",
-            "   vec4 mix1 = vec4(0.0, 114.0/255.0, 182.0/255.0, 1.0);",
-            "   vec4 mix2 = vec4(1.0);",
-            "   vec4 mix3 = vec4(122.0/255.0, 175.0/255.0, 255.0/255.0, 1.0);",
-            "   vec4 mix4 = vec4(88.0/255.0, 233.0/255.0, 192.0/255.0, 1.0);",
-            "   vec4 color1 = mix(mix1, mix2, uv.y * sin(time));",
-            "   vec4 color2 = mix(mix3, mix4, uv.x * cos(time));",
+            // "   vec4 mix1 = vec4(0.0, 114.0/255.0, 182.0/255.0, 1.0);",
+            // "   vec4 mix2 = vec4(1.0);",
+            // "   vec4 mix3 = vec4(122.0/255.0, 175.0/255.0, 255.0/255.0, 1.0);",
+            // "   vec4 mix4 = vec4(88.0/255.0, 233.0/255.0, 192.0/255.0, 1.0);",
+           "vec4 mix1 = vec4(0.0, 0.0, 1.0, 1.0);",
+		   "vec4 mix2 = vec4(1.0);",
+		   "vec4 mix3 = vec4(0.0,1.0,0.0, 1.0);",
+		   "vec4 mix4 = vec4(1.0,0.0,0.0, 1.0);",
+            "   vec4 color1 = mix(mix1, mix2, uv.y);",
+            "   vec4 color2 = mix(mix3, mix4, uv.x);",
             "   vec4 color3 = mix(color1, color2, 0.5);",
             // "   vec4 color = mix(color3, texture2D(texture, vUv), 0.5);",
             "   vec4 color = mix(mix(color3, texture2D(texture, vUv), 0.5), texture2D(texture, vUv), (0.5 + 0.5*sin((-sin(time) + uv.x*sin(time)*2.0)*(-1.0 + uv.y*2.0)*5.0)));",
