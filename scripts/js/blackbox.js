@@ -202,13 +202,24 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             useNewOriginal = false;            
         }
 
-        var blob = dataURItoBlob(renderer.domElement.toDataURL('image/jpg'));
-        var file = window.URL.createObjectURL(blob);
-        var img = new Image();
-        img.src = file;
-        img.onload = function(e) {
+        // var blob = dataURItoBlob(renderer.domElement.toDataURL('image/jpg'));
+        // var file = window.URL.createObjectURL(blob);
+        // var img = new Image();
+        // img.src = file;
+        // img.onload = function(e) {
+            // texture.image = img;
+            fbMaterial.update();
+            renderer.render(scene, camera);
+            fbMaterial.getNewFrame();
+            fbMaterial.swapBuffers();
             texture.dispose();
-            texture.image = img;
+            texture = new THREE.Texture(renderer.domElement);
+            texture.needsUpdate = true;
+            texture.minFilter = texture.magFilter = THREE.LinearFilter;
+            // fbMaterial.setUniforms();
+
+            // texture.needsUpdate = true;
+
             effect = new Effect(effects[effectIndex]);
             effect.init();
             if (effect.useMask) {
@@ -250,7 +261,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             } else {
                 fbMaterial.setOriginalTex(origTex);
             }
-        }
+        // }
     }
 
     function animate() {
