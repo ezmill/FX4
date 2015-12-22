@@ -50,6 +50,12 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         "curves",
         "neon glow"
     ]
+    var mask1 = THREE.ImageUtils.loadTexture(path + "mask1.png");
+    mask1.minFilter = mask1.magFilter = THREE.LinearFilter;
+    var mask2 = THREE.ImageUtils.loadTexture(path + "mask2.png");
+    mask2.minFilter = mask2.magFilter = THREE.LinearFilter;
+    var revertTex = THREE.ImageUtils.loadTexture(path + "revert.png");
+    revertTex.minFilter = revertTex.magFilter = THREE.LinearFilter;
     var infoButton = document.createElement("div");
     var uploadButton = document.createElement("div");
     var icons = document.createElement("div");
@@ -81,6 +87,12 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     var soundFX = [];
     var backingTrack = new SoundEffect("assets/audio/backing.mp3");
     backingTrack.fadeIn();
+    var rendererStats  = new THREEx.RendererStats()
+    rendererStats.domElement.style.position   = 'absolute'
+    rendererStats.domElement.style.left  = '0px'
+    rendererStats.domElement.style.bottom    = '0px'
+    document.body.appendChild( rendererStats.domElement )
+
     init();
 
     function init() {
@@ -93,6 +105,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         renderer.setSize(renderSize.x, renderSize.y);
         renderer.setClearColor(0xffffff, 1.0);
         createEffect();
+
         document.addEventListener("mousemove", onMouseMove);
         document.addEventListener("mousedown", onMouseDown);
         document.addEventListener("mouseup", onMouseUp);
@@ -157,20 +170,10 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         fbMaterial = new FeedbackMaterial(renderer, scene, camera, texture, effect.shaders);
         fbMaterial.init();
         if (effect.name == "neon glow") {
-            var tex = THREE.ImageUtils.loadTexture(path + "mask1.png");
-            tex.minFilter = tex.magFilter = THREE.LinearFilter;
-            mask.setMask(tex);
+            mask.setMask(mask1);
         } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp") {
-            var tex = THREE.ImageUtils.loadTexture(path + "mask2.png")
-            tex.minFilter = tex.magFilter = THREE.LinearFilter;
-            mask.setMask(tex);
-            var revertTex = THREE.ImageUtils.loadTexture(path + "revert.png")
-            revertTex.minFilter = revertTex.magFilter = THREE.LinearFilter;
+            mask.setMask(mask2);
             fbMaterial.setMask(revertTex)
-        // } else if (effect.name == "warp") {
-        //     var tex = THREE.ImageUtils.loadTexture(path + "mask3.png");
-        //     tex.minFilter = tex.magFilter = THREE.LinearFilter;
-        //     mask.setMask(tex);
         } else {
             mask.setMask(false);
         }
@@ -213,7 +216,8 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             fbMaterial.getNewFrame();
             fbMaterial.swapBuffers();
             texture.dispose();
-            texture = new THREE.Texture(renderer.domElement);
+            texture.image = renderer.domElement;
+            // texture = new THREE.Texture(renderer.domElement);
             texture.needsUpdate = true;
             texture.minFilter = texture.magFilter = THREE.LinearFilter;
             // fbMaterial.setUniforms();
@@ -246,20 +250,10 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             fbMaterial = new FeedbackMaterial(renderer, scene, camera, texture, effect.shaders);
             fbMaterial.init();
             if (effect.name == "neon glow") {
-                var tex = THREE.ImageUtils.loadTexture(path + "mask1.png");
-                tex.minFilter = tex.magFilter = THREE.LinearFilter;
-                mask.setMask(tex);
+                mask.setMask(mask1);
             } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp") {
-                var tex = THREE.ImageUtils.loadTexture(path + "mask2.png")
-                tex.minFilter = tex.magFilter = THREE.LinearFilter;
-                mask.setMask(tex);
-                var revertTex = THREE.ImageUtils.loadTexture(path + "revert.png")
-                revertTex.minFilter = revertTex.magFilter = THREE.LinearFilter;
+                mask.setMask(mask2);
                 fbMaterial.setMask(revertTex)
-            // } else if (effect.name == "warp") {
-            //     var tex = THREE.ImageUtils.loadTexture(path + "mask3.png");
-            //     tex.minFilter = tex.magFilter = THREE.LinearFilter;
-            //     mask.setMask(tex);
             } else {
                 mask.setMask(false);
             }
@@ -300,6 +294,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         renderer.render(scene, camera);
         fbMaterial.getNewFrame();
         fbMaterial.swapBuffers();
+        rendererStats.update(renderer);
     }
     div.appendChild(renderer.domElement)
     // Put a "Save" button the the wrapper.
@@ -446,12 +441,12 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         } else {
             document.removeEventListener("mousedown", onMouseDown);
             window.setTimeout(function(){
-                document.addEventListener("mousedown", onMouseDown);
                 mouseDown = false;
                 r2 = 0;
                 mask.radius = 0;
                 soundFX[effectIndex].fadeOut();
                 createNewEffect();
+                document.addEventListener("mousedown", onMouseDown);
             }, 2000)
         }
 

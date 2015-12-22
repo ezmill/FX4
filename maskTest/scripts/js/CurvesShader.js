@@ -24,9 +24,9 @@ var CurvesShader = function(red, green, blue){
             array.splice(array.length, 0, red[i], green[i], blue[i], 255);
         }
         // console.log(array);
-        curveMap = new THREE.DataTexture(array, 256, 1, THREE.RGBAFormat, THREE.UnsignedByteType);
-        curveMap.minFilter = curveMap.magFilter = THREE.LinearFilter;
-        curveMap.needsUpdate = true;
+        // curveMap = new THREE.DataTexture(array, 256, 1, THREE.RGBAFormat, THREE.UnsignedByteType);
+        // curveMap.minFilter = curveMap.magFilter = THREE.LinearFilter;
+        // curveMap.needsUpdate = true;
         // var noiseSize = 256;
         var size = 256;
         var data = new Uint8Array( 4 * size );
