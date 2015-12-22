@@ -6,7 +6,7 @@ function SoundEffect(SRC, NAME){
 		this.audio = new Audio();
 		this.audio.src = this.src;
 		this.audio.load();
-		this.audio.muted = true;
+		// this.audio.muted = true;
 	}
 	this.init();
 
