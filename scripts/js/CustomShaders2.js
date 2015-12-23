@@ -2547,16 +2547,17 @@ var RevertShader = function(){
                 "vec3 inputCol = texture2D(texture, vUv).rgb;",
                 "vec3 warpCol = texture2D(origTex, coord).rgb;",
                 "vec3 mixCol = mix(inputCol, warpCol, 0.75);",
-                "vec3 mixCol2 = mix(inputCol, origCol, dot(mask.rgb, vec3(1.0))/3.0);",
+                "vec3 mixCol2 = mix(mixCol, origCol, dot(mask.rgb, vec3(1.0))/3.0);",
                 // "vec3 final = mix( col, repos.rgb, dot(alpha.rgb, vec3(1.0))/3.0);",
-                "vec3 final = mix(mixCol2,  mixCol, dot(alpha.rgb, vec3(1.0))/3.0);",
+                // "vec3 final = mix(mixCol, mixCol2,  dot(mask.rgb, vec3(1.0))/3.0);",
+                "vec3 final2 = mix(inputCol, mixCol2, dot(alpha.rgb, vec3(1.0))/3.0);",
                 // "if(dot(alpha.rgb, vec3(1.0))/3.0 > 0.99999){",
 
                 // "   col = col2.rgb;",
                 // "} else {",
 	            // "   col = mix( col2.rgb, col, dot(alpha.rgb, vec3(1.0))/3.0);",
                 // "}",
-                "gl_FragColor = vec4(final,1.0);",
+                "gl_FragColor = vec4(final2,1.0);",
             "}"
 
 

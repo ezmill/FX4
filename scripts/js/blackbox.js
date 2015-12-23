@@ -20,10 +20,10 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     div.style.overflow = "hidden";
     div.style.height = "100vh";
     div.style.width = "100vw";
-    var marginLeft = 1000;
+    var marginLeft = 850;
     var useMargin = false;
     var renderSize;
-    var imgNum = 1;
+    var imgNum = 12;
     var path = "assets/textures/" + imgNum + "/";
     var mouse = new THREE.Vector2(0.0, 0.0);
     var time = 0.0;
@@ -86,6 +86,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     rendererStats.domElement.style.position   = 'absolute'
     rendererStats.domElement.style.left  = '0px'
     rendererStats.domElement.style.bottom    = '0px'
+    var debounceResize;
     // document.body.appendChild( rendererStats.domElement )
 
     function init() {
@@ -108,7 +109,8 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         document.addEventListener('touchcancel', onDocumentTouchEnd, false);
         document.addEventListener('touchleave', onDocumentTouchEnd, false);
         // document.addEventListener('keydown', onKeyDown, false);
-        window.addEventListener("resize", onWindowResize);
+        debounceResize = debounce(onWindowResize, 250);
+        window.addEventListener("resize", debounceResize);
         infoButton.addEventListener("click", cbs.info);
         infoButton.addEventListener("touchstart", cbs.info);
         infoButton.addEventListener("touchdown", cbs.info);
@@ -232,12 +234,12 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     function setMask(){
         if (effect.name == "neon glow") {
             mask.setMask(mask1);
-        } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || effect.name == "revert" || effect.name == "warp" || effect.name == "glitch") {
+        } else if (effect.name == "rgb shift" || effect.name == "oil paint" || effect.name == "flow" || effect.name == "warp flow" || effect.name == "repos" || /*effect.name == "revert" ||*/ effect.name == "warp" || effect.name == "glitch") {
             mask.setMask(mask2);
-            fbMaterial.setMask(revertTex)
         } else {
             mask.setMask(false);
         }
+        fbMaterial.setMask(revertTex)
     }
     function animate() {
         id = requestAnimationFrame(animate);
@@ -365,7 +367,6 @@ function blackbox(el, inputImage, origImage, size, cbs) {
             mouse.x = (event.pageX / renderSize.x) * 2 - 1;            
         }
         mouse.y = -(event.pageY / renderSize.y) * 2 + 1;
-        console.log(mouse.x);
         mask.mouse = new THREE.Vector2(mouse.x, mouse.y);
     }
 
@@ -492,6 +493,20 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         icons.appendChild(uploadButton);
         div.appendChild(icons);
     }
+    function debounce(func, wait, immediate) {
+        var timeout;
+        return function() {
+            var context = this, args = arguments;
+            var later = function() {
+                timeout = null;
+                if (!immediate) func.apply(context, args);
+            };
+            var callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
+    };
     /**
 
 Below this comment are dependencies

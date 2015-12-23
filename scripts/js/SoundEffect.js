@@ -2,6 +2,7 @@ function SoundEffect(SRC, NAME){
 	this.src = SRC;
 	this.name = NAME;
 	this.playing = false;
+	this.maxVolume = 0.5;
 	this.init = function(){
 		this.audio = new Audio();
 		this.audio.src = this.src;
@@ -12,8 +13,7 @@ function SoundEffect(SRC, NAME){
 
 	this.update = function(){
 		if (this.playing) {
-            this.audio.play();
-            this.audio.volume += (1.0 - this.audio.volume) * 0.05;
+            this.audio.volume += (this.maxVolume - this.audio.volume) * 0.05;
 
         } else {
             this.audio.volume += (0.0 - this.audio.volume) * 0.05;
@@ -24,6 +24,7 @@ function SoundEffect(SRC, NAME){
 	}
 	this.fadeIn = function(){
 		this.playing = true;
+        this.audio.play();
 	}
 	this.fadeOut = function(){
 		this.playing = false;
