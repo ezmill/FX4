@@ -80,8 +80,8 @@ function blackbox(el, inputImage, origImage, size, cbs) {
     var icons = document.createElement("div");
     addIcons();
     var soundFX = [];
-    var backingTrack = new SoundEffect("assets/audio/backing.mp3");
-    backingTrack.fadeIn();
+    // var backingTrack = new SoundEffect("assets/audio/backing.mp3");
+    // backingTrack.fadeIn();
     var rendererStats  = new THREEx.RendererStats()
     rendererStats.domElement.style.position   = 'absolute'
     rendererStats.domElement.style.left  = '0px'
@@ -259,7 +259,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         }
         mask.update();
         alpha.needsUpdate = true;
-        backingTrack.update();
+        // backingTrack.update();
         for(var i = 0; i < soundFX.length; i++){
             soundFX[i].update();
         }
@@ -404,6 +404,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
 
     function onDocumentTouchMove(event) {
         mouseDown = true;
+        // soundFX[effectIndex].audio.play();
         updateMouse(event);
     }
 
@@ -420,8 +421,8 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         mouseDown = false;
         r2 = 0;
         mask.radius = 0;
+        // soundFX[effectIndex].fade();
         soundFX[effectIndex].fadeOut();
-
         createNewEffect();
     }
 
@@ -553,7 +554,7 @@ Below this comment are dependencies
             // this.fbos.push(this.fbo2);
             // 
             for (var i = 0; i < this.fbos.length; i++) {
-                this.fbos[i].material.uniforms.resolution.value = new THREE.Vector2(window.innerWidth, window.innerHeight);
+                this.fbos[i].material.uniforms.resolution.value = new THREE.Vector2(renderSize.x, renderSize.y);
             }
 
 
@@ -566,7 +567,7 @@ Below this comment are dependencies
             });
             this.material.uniforms["texture"].value = this.fbos[2].renderTarget;
             this.material.uniforms["texture"].minFilter = this.material.uniforms["texture"].magFilter = THREE.LinearFilter;
-            this.material.uniforms["resolution"].value = new THREE.Vector2(window.innerWidth, window.innerHeight);
+            this.material.uniforms["resolution"].value = new THREE.Vector2(renderSize.x, renderSize.y);
             this.material.uniforms["mouse"].value = new THREE.Vector2(renderSize.x, 0);
 
             this.geometry = new THREE.PlaneGeometry(2, 2, 0);
@@ -626,8 +627,8 @@ Below this comment are dependencies
                 this.material.uniforms.time.value = time;
                 if (this.fbos[i].material.uniforms["r2"]) this.fbos[i].material.uniforms["r2"].value = r2;
                 if (this.material.uniforms["r2"]) this.material.uniforms["r2"].value = r2;
-                if (this.fbos[i].material.uniforms["resolution"]) this.fbos[i].material.uniforms["resolution"].value = new THREE.Vector2(window.innerWidth, window.innerHeight);
-                if (this.material.uniforms["resolution"]) this.material.uniforms["resolution"].value = new THREE.Vector2(window.innerWidth, window.innerHeight);
+                if (this.fbos[i].material.uniforms["resolution"]) this.fbos[i].material.uniforms["resolution"].value = new THREE.Vector2(renderSize.x, renderSize.y);
+                if (this.material.uniforms["resolution"]) this.material.uniforms["resolution"].value = new THREE.Vector2(renderSize.x, renderSize.y);
                 if (this.fbos[i].material.uniforms["alpha"]) this.fbos[i].material.uniforms["alpha"].value = alpha;
                 if (this.material.uniforms["alpha"]) this.material.uniforms["alpha"].value = alpha;
                 if (this.fbos[i].material.uniforms["mouse"]) this.fbos[i].material.uniforms["mouse"].value = new THREE.Vector2(mouse.x, mouse.y);
