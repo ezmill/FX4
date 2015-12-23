@@ -398,6 +398,7 @@ function blackbox(el, inputImage, origImage, size, cbs) {
 
     function onDocumentTouchStart(event) {
         mouseDown = true;
+        soundFX[effectIndex].fadeIn();
         updateMouse(event);
     }
 
@@ -419,6 +420,8 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         mouseDown = false;
         r2 = 0;
         mask.radius = 0;
+        soundFX[effectIndex].fadeOut();
+
         createNewEffect();
     }
 
