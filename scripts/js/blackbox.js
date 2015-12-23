@@ -98,6 +98,8 @@ function blackbox(el, inputImage, origImage, size, cbs) {
         });
         renderer.setSize(renderSize.x, renderSize.y);
         renderer.setClearColor(0xffffff, 1.0);
+        // console.log(window.devicePixelRatio);
+        renderer.setPixelRatio(window.devicePixelRatio/2);
         createEffect();
 
         document.addEventListener("mousemove", onMouseMove);
